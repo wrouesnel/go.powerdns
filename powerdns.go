@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/errwrap"
 	"encoding/json"
 	"bytes"
+	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
+	"io/ioutil"
 )
 
 var (
@@ -43,7 +45,7 @@ func NewClient(endpoint string, apiKey string, tlsInsecure bool) (*PowerDNSClien
 
 	// Set API key
 	headers := http.Header{}
-	headers["X-API-Key"] = apiKey
+	headers["X-API-Key"] = []string{apiKey}
 
 	return New(decodedUrl, client, headers)
 }
@@ -76,7 +78,7 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 
 	requestPath := p.endpoint.ResolveReference(subPath)
 
-	requestBody, err := json.Marshal(bodyType)
+	requestBody, err := json.Marshal(requestType)
 	if err != nil {
 		return errwrap.Wrap(ErrClientRequestParsingError, err)
 	}
@@ -92,9 +94,9 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 		httpReq.Header[key] = inputHeaders
 	}
 
-	// Forcibly set the JSON content type header and Accept header since the API requirest his.
-	httpReq.Header["Content-Type"] = "application/json"
-	httpReq.Header["Accept"] = "application/json"
+	// Forcibly set the JSON content type header and Accept header since the API requires it.
+	httpReq.Header["Content-Type"] = []string{"application/json"}
+	httpReq.Header["Accept"] =  []string{"application/json"}
 
 	// Execute the request.
 	resp, err := p.cli.Do(httpReq)
@@ -105,13 +107,18 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 	// Deserialize the response.
 	defer resp.Body.Close()
 
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errwrap.Wrap(ErrClientServerResponseUnreadable, err)
+	}
+
 	// Check if an HTTP error code was returned, in which case we need to return an error type.
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		// Did not get 200, so we failed. Did we get a reported fail from the server?
 		if 400 <= resp.StatusCode && resp.StatusCode <= 599 {
 			// Should be able to unmarshal an error type.
 			responseErr := shared.Error{}
-			if err := json.Unmarshal(resp.Body.ReadAll(), &responseErr); err != nil {
+			if err := json.Unmarshal(respBody, &responseErr); err != nil {
 				return errwrap.Wrap(ErrClientServerResponseUnreadable, err)
 			}
 			return errwrap.Wrap(ErrClientServerResponse, err)
@@ -121,7 +128,7 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 	}
 
 	// Success! Unmarshal into the user type
-	if err := json.Unmarshal(resp.Body.ReadAll(), responseType); err != nil {
+	if err := json.Unmarshal(respBody, responseType); err != nil {
 		return errwrap.Wrap(ErrClientServerResponseUnreadable, err)
 	}
 

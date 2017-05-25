@@ -18,7 +18,11 @@ func (e Error) Error() string {
 
 // WrappedErrors implements errwrap.Wrapper
 func (e Error) WrappedErrors() []error {
-	return e.Errors
+	ret := []error{}
+	for _, err := range e.Errors {
+		ret = append(ret, error(err))
+	}
+	return ret
 }
 
 // APIVersion struct
