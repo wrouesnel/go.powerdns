@@ -1,32 +1,32 @@
 package powerdns
 
 import (
-	"net/url"
-	"net/http"
-	"errors"
-	"crypto/tls"
-	"github.com/hashicorp/errwrap"
-	"encoding/json"
 	"bytes"
+	"crypto/tls"
+	"encoding/json"
+	"errors"
+	"github.com/hashicorp/errwrap"
 	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 )
 
 var (
-	ErrClientNilError = errors.New("No URL supplied for API client.")
-	ErrClientRequestParsingError = errors.New("Error parsing request parameters locally")
-	ErrClientRequestIsAbs = errors.New("Absolute URI is not allowed")
-	ErrClientRequestFailed = errors.New("Error sending request to server")
-	ErrClientServerUnknownStatus = errors.New("Server returned a StatusCode it shouldn't have.")
+	ErrClientNilError                 = errors.New("No URL supplied for API client.")
+	ErrClientRequestParsingError      = errors.New("Error parsing request parameters locally")
+	ErrClientRequestIsAbs             = errors.New("Absolute URI is not allowed")
+	ErrClientRequestFailed            = errors.New("Error sending request to server")
+	ErrClientServerUnknownStatus      = errors.New("Server returned a StatusCode it shouldn't have.")
 	ErrClientServerResponseUnreadable = errors.New("Server returned a response that could not be deserialized")
-	ErrClientServerResponse = errors.New("Server returned an error response")
+	ErrClientServerResponse           = errors.New("Server returned an error response")
 )
 
 // PowerDNSClient client struct
 type PowerDNSClient struct {
-	endpoint   *url.URL
-	headers	http.Header
-	cli *http.Client
+	endpoint *url.URL
+	headers  http.Header
+	cli      *http.Client
 }
 
 // NewClient initializes an API client with some common default.
@@ -63,8 +63,8 @@ func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*PowerDNSCli
 
 	apiClient := &PowerDNSClient{
 		endpoint: endpoint,
-		headers: headers,
-		cli: cli,
+		headers:  headers,
+		cli:      cli,
 	}
 
 	return apiClient, nil
@@ -96,7 +96,7 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 
 	// Forcibly set the JSON content type header and Accept header since the API requires it.
 	httpReq.Header["Content-Type"] = []string{"application/json"}
-	httpReq.Header["Accept"] =  []string{"application/json"}
+	httpReq.Header["Accept"] = []string{"application/json"}
 
 	// Execute the request.
 	resp, err := p.cli.Do(httpReq)
