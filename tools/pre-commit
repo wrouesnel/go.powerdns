@@ -1,0 +1,4 @@
+#!/bin/bash
+# Pre-commit hooks to make life a bit easier.
+echo "Checking formatting..."
+make style
