@@ -461,14 +461,14 @@
 		{
 			"checksumSHA1": "1MXx7WN0nA5A9v4hOFO8iLcONGo=",
 			"path": "golang.org/x/tools/cmd/goimports",
-			"revision": "92d42b9ff15f625347a13b6aeafd04a33537ce91",
-			"revisionTime": "2017-06-02T11:28:38Z"
+			"revision": "2a5864fcfb595b4ee9a7607f1beb25778cf64c6e",
+			"revisionTime": "2017-03-22T18:59:57Z"
 		},
 		{
 			"checksumSHA1": "V6/A1ZOZ2GUOZcRWcXegtci2FoU=",
 			"path": "golang.org/x/tools/cmd/gotype",
-			"revision": "92d42b9ff15f625347a13b6aeafd04a33537ce91",
-			"revisionTime": "2017-06-02T11:28:38Z"
+			"revision": "2a5864fcfb595b4ee9a7607f1beb25778cf64c6e",
+			"revisionTime": "2017-03-22T18:59:57Z"
 		},
 		{
 			"checksumSHA1": "nD89PLkMqA5CakR8SoDuj3iQz1M=",
@@ -669,5 +669,5 @@
 			"revisionTime": "2017-05-22T19:09:05Z"
 		}
 	],
-	"rootPath": "github.com/wrouesnel/go.powerdns/tools"
+	"rootPath": "github.com/wrouesnel/self-contained-go-project/tools"
 }
