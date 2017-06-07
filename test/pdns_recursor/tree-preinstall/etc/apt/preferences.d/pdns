@@ -1,0 +1,3 @@
+Package: pdns-*
+Pin: release a=xenial-auth-40
+Pin-Priority: 600

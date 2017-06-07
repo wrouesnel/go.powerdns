@@ -101,12 +101,17 @@ fi
 log "Starting up with hostname: $HOSTNAME"
 
 DATA_DIR=/data
+RECURSOR_DATA_DIR=$DATA_DIR/recursor
 
 mkdir -p $DATA_DIR
 chmod 755 $DATA_DIR
 
-chown root:pdns ${DATA_DIR}
-chmod 0774 ${DATA_DIR}
+log "Ensuring $RECURSOR_DATA_DIR exists"
+mkdir -m 755 -p "$RECURSOR_DATA_DIR"
+
+log "Checking permissions on $RECURSOR_DATA_DIR..."
+chmod 700 "$RECURSOR_DATA_DIR"
+chown -R pdns "$RECURSOR_DATA_DIR"
 
 powerdns_password_file=${DATA_DIR}/dbpassword.powerdns
 powerdns_apikey_file=${DATA_DIR}/api-key.powerdns
@@ -129,13 +134,11 @@ fi
 
 log "Templating powerdns configuration..."
 mkdir -m 744 -p /run/powerdns
-p2 -t /etc/powerdns/pdns.conf.p2 -o /run/powerdns/pdns.conf || ( echoerr "Templating pdns config failed." ; exit 1 )
-chmod 644 /run/powerdns/pdns.conf
-
-cat /pdns.schema.sql | sqlite3 ${DATA_DIR}/powerdns.db || ( echoerr "Failed initializing pdns DB." ; exit )
+p2 -t /etc/powerdns/recursor.conf.p2 -o /run/powerdns/recursor.conf || ( echoerr "Templating pdns config failed." ; exit 1 )
+chmod 644 /run/powerdns/recursor.conf
 
 # This structure ensures we can CTRL+C on the desktop.
-/usr/sbin/pdns_server --config-dir=/run/powerdns --guardian=no --daemon=no --disable-syslog --write-pid=no 2>&1 &
+exec /usr/sbin/pdns_recursor --config-dir=/run/powerdns --daemon=no --disable-syslog=yes --write-pid=no 2>&1
 PID=$!
 trap "kill -TERM $PID" INT TERM
 wait $PID

@@ -10,12 +10,12 @@ COPY *.asc /tmp/
 RUN apt-key add /tmp/*.asc && rm -f /tmp/*.asc
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    pdns-server pdns-backend-sqlite3 wget sqlite3 && \
+    pdns-recursor pdns-backend-sqlite3 wget && \
     # gosu
-    wget -O /usr/local/bin/gosu "{$URL_GOSU}" && \
+    wget -O /usr/local/bin/gosu $URL_GOSU && \
     chmod +x /usr/local/bin/gosu && \
     # Templating engine
-    wget -O /usr/local/bin/p2 "${URL_P2CLI}" && \
+    wget -O /usr/local/bin/p2 $URL_P2CLI && \
     chmod +x /usr/local/bin/p2
     
 COPY tree-postinstall/ /

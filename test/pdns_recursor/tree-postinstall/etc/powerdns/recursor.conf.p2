@@ -1,0 +1,60 @@
+
+allow-from=0.0.0.0/0, ::
+
+api-key={{API_KEY}}
+api-logfile=/dev/stdout
+api-readonly=no
+api-config-dir={{RECURSOR_DATA_DIR}}
+
+config-dir=/etc/powerdns
+config-name=
+
+daemon=no
+
+# Changed from default to allow: 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12
+dont-query=127.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, ::1/128, fc00::/7, fe80::/10, 0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32
+
+forward-zones=
+forward-zones-recurse=
+
+include-dir={{RECURSOR_DATA_DIR}}
+
+local-address=0.0.0.0:53, [::]:53
+
+reuseport=yes
+
+query-local-address=0.0.0.0
+
+# Enables IPv6 support explicitely.
+query-local-address6=::
+
+# For audit purposes, we would like to log every query.
+quiet=no
+
+reuseport=yes
+
+# Disabled: will not be reachable.
+security-poll-suffix=
+
+# Needed (see dont-query above)
+serve-rfc1918=yes
+
+setgid=pdns
+setuid=pdns
+
+socket-dir=/var/run
+socket-owner=pdns
+socket-group=pdns
+socket-mode=0774
+
+udp-truncation-threshold=4096
+
+webserver=yes
+webserver-address=0.0.0.0
+# Webserver is reverse proxied via nginx.
+webserver-allow-from=0.0.0.0/0,::1/128
+webserver-password=
+webserver-port=8080
+
+write-pid=no
+
