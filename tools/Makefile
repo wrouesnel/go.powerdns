@@ -9,13 +9,15 @@ SHELL := env PATH=$(PATH) /bin/bash
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
 # This function is used to get the linters used by metalinter
-get_metalinters := gometalinter --help | grep -oP '  \w+  \(.+\)' | tr -s ' ' | cut -d' ' -f3 | grep -oP '[^()]+'
+get_metalinters := gometalinter --help | grep -oP '\s+\w+:\s*\(.+\)' | tr -s ' ' | cut -d' ' -f3 | grep -oP '[^()]+'
 
+# This is a list of external tools we want to vendor
 TOOL_SRCS := github.com/kardianos/govendor \
  github.com/wadey/gocovmerge \
  github.com/mattn/goveralls \
  github.com/alecthomas/gometalinter
 
+# This is populated by imported dependencies from gometalinter
 METATOOL_SRCS := 
 
 GO_SRC := $(shell find $(SOURCEDIR) -name '*.go')
@@ -25,20 +27,21 @@ GO := GOPATH=$(shell pwd) go
 DEFAULT: all
 
 tools.deps: $(GO_SRC)
-	# Generate build patterns for static tools
-	for pkg in $(TOOL_SRCS); do \
+	@# Generate build patterns for static tools
+	@for pkg in $(TOOL_SRCS); do \
 		echo -e "bin/$$(basename $$pkg): $$GO_SRC\n\t\$$(GO) install -v $$pkg" ; \
 	done > tools.deps
 
-metatools.deps: tools.deps bin/gometalinter $(GO_SRC)
+-include tools.deps
+
+metatools.deps: bin/gometalinter $(GO_SRC)
 	# Generate build patterns for metalinters tools
-	echo -e "METATOOL_SRCS+=$(shell $(get_metalinters))" > metatools.deps
-	for pkg in $(shell $(get_metalinters)) ; do \
+	@echo -e "METATOOL_SRCS+=$(shell $(get_metalinters))" > metatools.deps
+	@for pkg in $(shell $(get_metalinters)) ; do \
 		echo -e "bin/$$(basename $$pkg): $$GO_SRC\n\t\$$(GO) install -v $$pkg" ; \
 	done >> metatools.deps
 
-include tools.deps
-include metatools.deps
+-include metatools.deps
 	
 update:
 	# Fetch govendor, then rebuild govendor.
