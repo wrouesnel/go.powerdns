@@ -5,14 +5,17 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"github.com/hashicorp/errwrap"
-	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/hashicorp/errwrap"
+	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 )
 
+// nolint: golint
 var (
+	// ErrClientNilError
 	ErrClientNilError                 = errors.New("No URL supplied for API client.")
 	ErrClientRequestParsingError      = errors.New("Error parsing request parameters locally")
 	ErrClientRequestIsAbs             = errors.New("Absolute URI is not allowed")
@@ -22,23 +25,23 @@ var (
 	ErrClientServerResponse           = errors.New("Server returned an error response")
 )
 
-// PowerDNSClient client struct
-type PowerDNSClient struct {
+// Client client struct
+type Client struct {
 	endpoint *url.URL
 	headers  http.Header
 	cli      *http.Client
 }
 
 // NewClient initializes an API client with some common default.
-func NewClient(endpoint string, apiKey string, tlsInsecure bool) (*PowerDNSClient, error) {
+func NewClient(endpoint string, apiKey string, tlsInsecure bool) (*Client, error) {
 	// TLS conf
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: tlsInsecure},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: tlsInsecure}, // nolint: gas
 	}
 	client := &http.Client{Transport: tr}
 
 	// Decode the url
-	decodedUrl, err := url.Parse(endpoint)
+	decodedURL, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +50,12 @@ func NewClient(endpoint string, apiKey string, tlsInsecure bool) (*PowerDNSClien
 	headers := http.Header{}
 	headers["X-API-Key"] = []string{apiKey}
 
-	return New(decodedUrl, client, headers)
+	return New(decodedURL, client, headers)
 }
 
 // New returns a New PowerDNS API client. If cli is set to nil, the default httpClient
 // is used (this will probably not work as you need to set an API key header).
-func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*PowerDNSClient, error) {
+func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*Client, error) {
 	if endpoint == nil {
 		return nil, ErrClientNilError
 	}
@@ -61,7 +64,7 @@ func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*PowerDNSCli
 		cli = http.DefaultClient
 	}
 
-	apiClient := &PowerDNSClient{
+	apiClient := &Client{
 		endpoint: endpoint,
 		headers:  headers,
 		cli:      cli,
@@ -71,21 +74,25 @@ func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*PowerDNSCli
 }
 
 // DoRequest executes a generic request against a sub-path of the PowerDNS API.
-func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType interface{}, responseType interface{}) error {
+func (p *Client) DoRequest(subPath *url.URL,
+	method string,
+	requestType interface{},
+	responseType interface{}) error {
+
 	if subPath.IsAbs() {
 		return ErrClientRequestIsAbs
 	}
 
 	requestPath := p.endpoint.ResolveReference(subPath)
 
-	requestBody, err := json.Marshal(requestType)
-	if err != nil {
-		return errwrap.Wrap(ErrClientRequestParsingError, err)
+	requestBody, jerr := json.Marshal(requestType)
+	if jerr != nil {
+		return errwrap.Wrap(ErrClientRequestParsingError, jerr)
 	}
 
-	httpReq, err := http.NewRequest(method, requestPath.RequestURI(), bytes.NewBuffer(requestBody))
-	if err != nil {
-		return errwrap.Wrap(ErrClientRequestParsingError, err)
+	httpReq, rerr := http.NewRequest(method, requestPath.RequestURI(), bytes.NewBuffer(requestBody))
+	if rerr != nil {
+		return errwrap.Wrap(ErrClientRequestParsingError, rerr)
 	}
 
 	// Add the headers.
@@ -99,17 +106,17 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 	httpReq.Header["Accept"] = []string{"application/json"}
 
 	// Execute the request.
-	resp, err := p.cli.Do(httpReq)
-	if err != nil {
-		return errwrap.Wrap(ErrClientRequestFailed, err)
+	resp, derr := p.cli.Do(httpReq)
+	if derr != nil {
+		return errwrap.Wrap(ErrClientRequestFailed, derr)
 	}
 
 	// Deserialize the response.
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint: errcheck
 
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errwrap.Wrap(ErrClientServerResponseUnreadable, err)
+	respBody, ierr := ioutil.ReadAll(resp.Body)
+	if ierr != nil {
+		return errwrap.Wrap(ErrClientServerResponseUnreadable, ierr)
 	}
 
 	// Check if an HTTP error code was returned, in which case we need to return an error type.
@@ -118,45 +125,46 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 		if 400 <= resp.StatusCode && resp.StatusCode <= 599 {
 			// Should be able to unmarshal an error type.
 			responseErr := shared.Error{}
-			if err := json.Unmarshal(respBody, &responseErr); err != nil {
-				return errwrap.Wrap(ErrClientServerResponseUnreadable, err)
+			if uerr := json.Unmarshal(respBody, &responseErr); uerr != nil {
+				return errwrap.Wrap(ErrClientServerResponseUnreadable, uerr)
 			}
-			return errwrap.Wrap(ErrClientServerResponse, err)
+			return errwrap.Wrap(ErrClientServerResponse, responseErr)
 		}
 		// Did not succeed, but did not recognize the status code either.
 		return ErrClientServerUnknownStatus
 	}
 
 	// Success! Unmarshal into the user type
-	if err := json.Unmarshal(respBody, responseType); err != nil {
-		return errwrap.Wrap(ErrClientServerResponseUnreadable, err)
+	if juerr := json.Unmarshal(respBody, responseType); juerr != nil {
+		return errwrap.Wrap(ErrClientServerResponseUnreadable, juerr)
 	}
 
 	return nil
 }
 
-//func (p *PowerDNSClient) baseRequest() *http.Request {
+//func (p *Client) baseRequest() *http.Request {
 //	http.NewRequest("", p.endpoint.String(), )
 //}
 //
-//func (p *PowerDNSClient) GetServers() {
+//func (p *Client) GetServers() {
 //	p.endpoint.ResolveReference()
 //}
 
 // AddRecord ...
-//func (p *PowerDNSClient) AddRecord(name string, recordType string, ttl int, content []string) error {
+//func (p *Client) AddRecord(name string, recordType string, ttl int, content []string) error {
 //
 //	return p.ChangeRecord(name, recordType, ttl, content, "REPLACE")
 //}
 
 // DeleteRecord ...
-//func (p *PowerDNSClient) DeleteRecord(name string, recordType string, ttl int, content []string) error {
+//func (p *Client) DeleteRecord(name string, recordType string, ttl int, content []string) error {
 //
 //	return p.ChangeRecord(name, recordType, ttl, content, "DELETE")
 //}
 
 // ChangeRecord ...
-//func (p *PowerDNSClient) ChangeRecord(name string, recordType string, ttl int, contents []string, action string) error {
+//func (p *Client) ChangeRecord(name string, recordType string,
+// ttl int, contents []string, action string) error {
 //
 //	// Add trailing dot for V1 and removes it for V0
 //	if p.apiVersion == 1 {
@@ -187,17 +195,18 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 //}
 
 // GetRecords ...
-//func (p *PowerDNSClient) GetRecords() ([]Record, error) {
+//func (p *Client) GetRecords() ([]Record, error) {
 //
 //	var records []Record
 //
 //	zone := new(Zone)
 //	rerr := new(Error)
 //
-//	resp, err := p.getSling().Path(p.path+"/servers/"+p.server+"/zones/"+p.domain).Set("X-API-Key", p.apikey).Receive(zone, rerr)
+//	resp, err := p.getSling().Path(p.path+"/servers/"+p.server+"/zones/"+p.domain).
+// 		Set("X-API-Key", p.apikey).Receive(zone, rerr)
 //
 //	if err != nil {
-//		return records, fmt.Errorf("PowerDNSClient API call has failed: %v", err)
+//		return records, fmt.Errorf("Client API call has failed: %v", err)
 //	}
 //
 //	if resp.StatusCode >= 400 {
@@ -236,7 +245,7 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 //	return records, err
 //}
 //
-//func (p *PowerDNSClient) patchRRset(rrset RRset, action string) error {
+//func (p *Client) patchRRset(rrset RRset, action string) error {
 //
 //	rrset.ChangeType = "REPLACE"
 //
@@ -250,7 +259,8 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 //	rerr := new(Error)
 //	zone := new(Zone)
 //
-//	resp, err := p.getSling().Path(p.path+"/servers/"+p.server+"/zones/").Patch(p.domain).BodyJSON(sets).Receive(zone, rerr)
+//	resp, err := p.getSling().Path(p.path+"/servers/"+p.server+"/zones/").
+// 		Patch(p.domain).BodyJSON(sets).Receive(zone, rerr)
 //
 //	if err == nil && resp.StatusCode >= 400 {
 //		rerr.Message = strings.Join([]string{resp.Status, rerr.Message}, " ")
@@ -264,7 +274,7 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 //	return err
 //}
 
-//func (p *PowerDNSClient) detectAPIVersion() (int, error) {
+//func (p *Client) detectAPIVersion() (int, error) {
 //
 //	versions := new([]APIVersion)
 //	info := new(ServerInfo)
@@ -302,7 +312,7 @@ func (p *PowerDNSClient) DoRequest(subPath *url.URL, method string, requestType 
 //	return latestVersion.Version, err
 //}
 
-//func (p *PowerDNSClient) getSling() *sling.Sling {
+//func (p *Client) getSling() *sling.Sling {
 //
 //	u := new(url.URL)
 //	u.Host = p.hostname + ":" + p.port

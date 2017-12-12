@@ -4,8 +4,10 @@ import (
 	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 )
 
+// Kind is a string representing the type of zone in powerdns authoritative
 type Kind string
 
+// nolint: golint
 const (
 	KindNative Kind = "Native"
 	KindMaster Kind = "Master"
@@ -16,15 +18,18 @@ const (
 // only those from the recommended set.
 type SoaEditValue string
 
+// nolint: golint
 const (
-	SoaEditValue_IncrementWeeks     SoaEditValue = "INCREMENT-WEEKS"
-	SoaEditValue_InceptionEpoch     SoaEditValue = "INCEPTION-EPOCH"
-	SoaEditValue_InceptionIncrement SoaEditValue = "INCEPTION-INCREMENT"
-	SoaEditValue_None               SoaEditValue = "NONE"
+	SoaEditValueIncrementWeeks     SoaEditValue = "INCREMENT-WEEKS"
+	SoaEditValueInceptionEpoch     SoaEditValue = "INCEPTION-EPOCH"
+	SoaEditValueInceptionIncrement SoaEditValue = "INCEPTION-INCREMENT"
+	SoaEditValueNone               SoaEditValue = "NONE"
 )
 
+// RRsetChangeType is a fixed set of string constants used when patching zones.
 type RRsetChangeType string
 
+// nolint: golint
 const (
 	RRsetReplace RRsetChangeType = "REPLACE"
 	RRSetDelete  RRsetChangeType = "DELETE"
@@ -40,7 +45,7 @@ type Zone struct {
 	//"nsec3narrow": <bool>,
 	//"presigned": <bool>,
 	SoaEdit    SoaEditValue `json:"soa_edit"`
-	SoaEditApi SoaEditValue `json:"soa_edit_api"`
+	SoaEditAPI SoaEditValue `json:"soa_edit_api"`
 	Account    string       `json:"account,omit_empty"`
 }
 
@@ -69,6 +74,7 @@ type ZoneRequestNative struct {
 	Nameservers []string `json:"nameservers"`
 }
 
+// RRsetPatchRequest implements the fields used when patching a specific RRset.
 type RRsetPatchRequest struct {
 	shared.RRset
 	ChangeType RRsetChangeType `json:"changetype"`

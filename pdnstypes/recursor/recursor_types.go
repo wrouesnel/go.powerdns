@@ -4,8 +4,10 @@ import (
 	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 )
 
+// Kind is a string representing the type of zone in powerdns recursor
 type Kind string
 
+// nolint: golint
 const (
 	KindNative    Kind = "Native"
 	KindForwarded Kind = "Forwarded"

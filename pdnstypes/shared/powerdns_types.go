@@ -34,6 +34,7 @@ type APIVersion struct {
 // DaemonType indicates the type of server in use.
 type DaemonType string
 
+// nolint: golint
 const (
 	DaemonTypeAuthoritative = "authoritative"
 	DaemonTypeRecursor      = "recursor"
@@ -74,9 +75,10 @@ type RRset struct {
 type Record struct {
 	Content  string `json:"content"`
 	Disabled bool   `json:"disabled"`
-	// set-ptr is explicitely ignored because it's rules are so specific at the moment
+	// set-ptr is explicitly ignored because it's rules are so specific at the moment
 }
 
+// Comment record which can be attached to RRsets
 type Comment struct {
 	Content    string    `json:"content"`
 	Account    string    `json:"account"`
