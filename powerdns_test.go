@@ -5,17 +5,16 @@ import (
 
 	"context"
 
+	"github.com/docker/cli/cli/command/image/build"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/jsonmessage"
 
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/docker/cli/cli/command/image/build"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/jsonmessage"
 )
 
 type AuthoritativeSuite struct {
