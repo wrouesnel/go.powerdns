@@ -92,10 +92,12 @@ style: tools
 
 lint: tools
 	@echo Using $(CONCURRENT_LINTERS) processes
-	gometalinter -j $(CONCURRENT_LINTERS) --deadline=$(LINTER_DEADLINE) --enable-all --line-length=120  --disable=gotype --disable=gocyclo $(GO_DIRS)
+	gometalinter -j $(CONCURRENT_LINTERS) --deadline=$(LINTER_DEADLINE) --enable-all \
+		--line-length=120  --disable=gotype --disable=gocyclo $(GO_DIRS)
 
 fmt: tools
 	gofmt -s -w $(GO_SRC)
+	goimports -w $(GO_SRC)
 
 test: tools
 	@mkdir -p $(COVERDIR)
