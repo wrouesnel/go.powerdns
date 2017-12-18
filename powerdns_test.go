@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/docker/docker/pkg/idtools"
 )
 
 type AuthoritativeSuite struct {
@@ -55,7 +57,7 @@ func (s *AuthoritativeSuite) SetUpTest(c *C) {
 	excludes = build.TrimBuildFilesFromExcludes(excludes, relDockerfile, false)
 	buildCtx, err := archive.TarWithOptions(contextDir, &archive.TarOptions{
 		ExcludePatterns: excludes,
-		ChownOpts:       &archive.TarChownOptions{UID: 0, GID: 0},
+		ChownOpts:       &idtools.IDPair{UID: 0, GID: 0},
 	})
 	c.Assert(err, IsNil)
 
