@@ -13,29 +13,57 @@ import (
 
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
+	"testing"
 
 	"github.com/docker/docker/pkg/idtools"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	"io"
+
+	"github.com/wrouesnel/go.powerdns/pdnstypes/authoritative"
+	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
+const (
+	testAPIKey = "powerdns"
+)
+
+// Hook up gocheck into the "go test" runner.
+func Test(t *testing.T) { TestingT(t) }
+
 type AuthoritativeSuite struct {
+	dockerCli   *client.Client
 	imageID     string
 	containerID string
-	containerIP string
 }
 
 var _ = Suite(&AuthoritativeSuite{})
 
-func (s *AuthoritativeSuite) SetUpTest(c *C) {
+// testContainerIP returns the IP of the currently running test container.
+func (s *AuthoritativeSuite) containerIP(c *C) string {
+	ctx := context.Background()
+	resp, err := s.dockerCli.ContainerInspect(ctx, s.containerID)
+	if err != nil {
+		panic(err)
+	}
+
+	return resp.NetworkSettings.IPAddress
+}
+
+// SetUpSuite builds a PowerDNS authoritative image to use in tests.
+func (s *AuthoritativeSuite) SetUpSuite(c *C) {
+	c.Log("Building test docker container")
 	// docker build and run the authoritative container
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		panic(err)
 	}
+	s.dockerCli = cli
 
-	contextDir, relDockerfile, err := build.GetContextFromLocalDir("test/pdns_authoritative", "Dockerfile")
+	contextDir, relDockerfile, err := build.GetContextFromLocalDir("test/pdns_authoritative",
+		"test/pdns_authoritative/Dockerfile")
 	if err != nil {
 		panic(err)
 	}
@@ -65,11 +93,14 @@ func (s *AuthoritativeSuite) SetUpTest(c *C) {
 
 	httpProxy := os.Getenv("http_proxy")
 	httpsProxy := os.Getenv("https_proxy")
+	dockerPrefix := os.Getenv("DOCKER_PREFIX")
 
 	buildOptions := types.ImageBuildOptions{
 		BuildArgs: map[string]*string{
 			"http_proxy":  &httpProxy,
 			"https_proxy": &httpsProxy,
+			"DOCKER_PREFIX" : &dockerPrefix,
+			"API_KEY" : testAPIKey,
 		},
 	}
 
@@ -88,14 +119,76 @@ func (s *AuthoritativeSuite) SetUpTest(c *C) {
 	}
 
 	// Show the docker build log
-	var buildBuff io.Writer
-	err = jsonmessage.DisplayJSONMessagesStream(response.Body, buildBuff, os.Stdout.Fd(), true, aux)
+	err = jsonmessage.DisplayJSONMessagesStream(response.Body, os.Stdout, os.Stdout.Fd(), false, aux)
 	c.Assert(err, IsNil)
 
 	// Set the image ID of the build
 	s.imageID = imageID
+	c.Log("Build Image: %v", s.imageID)
 }
 
-func (s *AuthoritativeSuite) TestCompilation(c *C) {
-	NewClient("http://localhost:8080", "powerdns", true)
+// SetUpTest spawns a new pdns_authoritative server for each test in this harness.
+func (s *AuthoritativeSuite) SetUpTest(c *C) {
+	c.Logf("Starting pdns_authoritative docker container with image: %v", s.imageID)
+
+	ctx := context.Background()
+
+	containerConfig := &container.Config{
+		Image: s.imageID
+	}
+	hostConfig := &container.HostConfig{}
+	netConfig := &network.NetworkingConfig{}
+
+	resp, err := s.dockerCli.ContainerCreate(ctx, containerConfig, hostConfig, netConfig, "")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := s.dockerCli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		panic(err)
+	}
+
+	s.containerID = resp.ID
+
+	// Stream the logs to stdout so we can see what's happening
+	logRdr, err := s.dockerCli.ContainerLogs(ctx, s.containerID, types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow: true,
+	})
+
+	// todo: maybe make this use c.Logf instead so it integrates with tests better
+	go func(rdr io.ReadCloser) {
+		io.Copy(os.Stdout, rdr)
+	}(logRdr)
+
+	c.Logf("Started container for test: %v", s.containerID)
+}
+
+// TestRawRequests initializes and tests using the data structures directly.
+func (s *AuthoritativeSuite) TestRawRequests (c *C) {
+	endpoint := fmt.Sprintf("http://%s:8080", s.containerIP(c))
+
+	pdnsCli, err := NewClient(endpoint, testAPIKey, true)
+	c.Assert(err, IsNil)
+
+	// List zones (should be 0)
+	listErr := pdnsCli.DoRequest("zones", "GET", nil, []authoritative.ZoneResponse{})
+	c.Assert(listErr, IsNil, Commentf("Failed to list zones"))
+
+	// Create zone
+
+	// Create zone with contents
+
+	// List zones
+
+	// Add records to zone.
+
+	// List Records
+
+	// Remove records from zone.
+
+	// Delete zone.
+
+
 }

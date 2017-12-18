@@ -17,6 +17,7 @@ import (
 var (
 	// ErrClientNilError
 	ErrClientNilError                 = errors.New("No URL supplied for API client.")
+	ErrClientSubPathError			  = errors.New("Subpath URI was badly formed.")
 	ErrClientRequestParsingError      = errors.New("Error parsing request parameters locally")
 	ErrClientRequestIsAbs             = errors.New("Absolute URI is not allowed")
 	ErrClientRequestFailed            = errors.New("Error sending request to server")
@@ -25,9 +26,27 @@ var (
 	ErrClientServerResponse           = errors.New("Server returned an error response")
 )
 
+const (
+	apiPathString = "api/v1/"
+)
+
+// resolveAPIPath modifies the given url to have an API path from the global constant.
+var resolveAPIPath func(u *url.URL) *url.URL
+
+func init() {
+	apiSubPath, err := url.Parse(apiPathString)
+	if err != nil {
+		panic(err)
+	}
+	resolveAPIPath = func(u *url.URL) *url.URL {
+		return u.ResolveReference(apiSubPath)
+	}
+}
+
 // Client client struct
 type Client struct {
 	endpoint *url.URL
+	serverPath *url.URL	// Server endpoint is added to match the multi-server functionality of pdns.
 	headers  http.Header
 	cli      *http.Client
 }
@@ -64,8 +83,18 @@ func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*Client, err
 		cli = http.DefaultClient
 	}
 
+	serverPath, err := url.Parse("servers/localhost/")
+	if err != nil {
+		return nil, errwrap.Wrap(ErrClientSubPathError, err)
+	}
+
+	if serverPath.IsAbs() {
+		return nil, ErrClientRequestIsAbs
+	}
+
 	apiClient := &Client{
 		endpoint: endpoint,
+		serverPath: serverPath,
 		headers:  headers,
 		cli:      cli,
 	}
@@ -73,17 +102,28 @@ func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*Client, err
 	return apiClient, nil
 }
 
+// resolveServerPath adds the configured server path component to the endpoing URL
+func (p *Client) resolveServerPath(u *url.URL) *url.URL {
+	return u.ResolveReference(p.serverPath)
+}
+
 // DoRequest executes a generic request against a sub-path of the PowerDNS API.
-func (p *Client) DoRequest(subPath *url.URL,
+func (p *Client) DoRequest(subPathStr string,
 	method string,
 	requestType interface{},
 	responseType interface{}) error {
+
+	subPath, err := url.Parse(subPathStr)
+	if err != nil {
+		return errwrap.Wrap(ErrClientSubPathError, err)
+	}
 
 	if subPath.IsAbs() {
 		return ErrClientRequestIsAbs
 	}
 
-	requestPath := p.endpoint.ResolveReference(subPath)
+	// TODO: consider making resolveServerPath implicitly handle API path resolution
+	requestPath := p.resolveServerPath(resolveAPIPath(p.endpoint)).ResolveReference(subPath)
 
 	requestBody, jerr := json.Marshal(requestType)
 	if jerr != nil {
@@ -141,6 +181,10 @@ func (p *Client) DoRequest(subPath *url.URL,
 
 	return nil
 }
+
+//func (p *Client) ListZones() {
+//	p.DoRequest("zones", "GET", nil, [])
+//}
 
 //func (p *Client) baseRequest() *http.Request {
 //	http.NewRequest("", p.endpoint.String(), )
