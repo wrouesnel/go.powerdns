@@ -16,17 +16,22 @@ import (
 	"os"
 	"testing"
 
-	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/pkg/idtools"
 	"io"
 
+	"bufio"
+	"github.com/hashicorp/errwrap"
+	"github.com/prometheus/prometheus/util/httputil"
 	"github.com/wrouesnel/go.powerdns/pdnstypes/authoritative"
-	"golang.org/x/tools/go/gcimporter15/testdata"
+	"time"
+	"net/http"
 )
 
 const (
-	testAPIKey = "powerdns"
+	testAPIKey       = "powerdns"
+	containerTimeout = time.Second * 10
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -97,10 +102,9 @@ func (s *AuthoritativeSuite) SetUpSuite(c *C) {
 
 	buildOptions := types.ImageBuildOptions{
 		BuildArgs: map[string]*string{
-			"http_proxy":  &httpProxy,
-			"https_proxy": &httpsProxy,
-			"DOCKER_PREFIX" : &dockerPrefix,
-			"API_KEY" : testAPIKey,
+			"http_proxy":    &httpProxy,
+			"https_proxy":   &httpsProxy,
+			"DOCKER_PREFIX": &dockerPrefix,
 		},
 	}
 
@@ -134,9 +138,14 @@ func (s *AuthoritativeSuite) SetUpTest(c *C) {
 	ctx := context.Background()
 
 	containerConfig := &container.Config{
-		Image: s.imageID
+		Image: s.imageID,
+		Env: []string{
+			fmt.Sprintf("API_KEY=%s", testAPIKey),
+		},
 	}
-	hostConfig := &container.HostConfig{}
+	hostConfig := &container.HostConfig{
+		AutoRemove: true,
+	}
 	netConfig := &network.NetworkingConfig{}
 
 	resp, err := s.dockerCli.ContainerCreate(ctx, containerConfig, hostConfig, netConfig, "")
@@ -154,27 +163,113 @@ func (s *AuthoritativeSuite) SetUpTest(c *C) {
 	logRdr, err := s.dockerCli.ContainerLogs(ctx, s.containerID, types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
-		Follow: true,
+		Follow:     true,
 	})
+	if err != nil {
+		panic(err)
+	}
 
 	// todo: maybe make this use c.Logf instead so it integrates with tests better
 	go func(rdr io.ReadCloser) {
-		io.Copy(os.Stdout, rdr)
+		bio := bufio.NewReader(rdr)
+		for {
+			line, err := bio.ReadString('\n')
+			if err != nil {
+				break
+			}
+			c.Logf("CONTAINER: %s", line)
+		}
 	}(logRdr)
 
 	c.Logf("Started container for test: %v", s.containerID)
+	c.Logf("Waiting for PowerDNS to startup:")
+
+	pingEndpoint := fmt.Sprintf("http://%s:8080/api/v1/servers/localhost", s.containerIP(c))
+
+	client := httputil.NewClient(httputil.NewDeadlineRoundTripper(time.Second, nil))
+
+	pingReq, err := http.NewRequest("GET", pingEndpoint, nil)
+	if err != nil {
+		panic(err)
+	}
+	pingReq.Header["Content-Type"] = []string{"application/json"}
+	pingReq.Header["Accept"] = []string{"application/json"}
+	pingReq.Header["X-API-Key"] = []string{testAPIKey}
+
+	containerTimeoutCh := time.After(containerTimeout)
+	tickerCh := time.Tick(time.Second)
+
+	for {
+		result := func() bool {
+			resp, err := client.Do(pingReq)
+			if err == nil {
+				defer resp.Body.Close()
+				c.Logf("Still waiting for PowerDNS to start: status %v", resp.StatusCode)
+				if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+					c.Logf("PowerDNS Authoritative container is now listening.")
+					return true
+				}
+			}
+			select {
+			case <-containerTimeoutCh:
+				c.Errorf("PowerDNS Authoritative container did not startup within: %v", containerTimeout)
+				c.FailNow()
+			case <- tickerCh:
+			}
+			return false
+		}()
+		if result {
+			break
+		}
+	}
+
+	containerTimeoutCh = nil
+	tickerCh = nil
+
+}
+
+func (s *AuthoritativeSuite) TearDownTest(c *C) {
+	c.Logf("Stopping container for test: %v", s.containerID)
+
+	ctx := context.Background()
+
+	// Setup container stop waiting...
+	statusCh, errCh := s.dockerCli.ContainerWait(ctx, s.containerID, container.WaitConditionNotRunning)
+
+	// Send a container kill
+	if err := s.dockerCli.ContainerKill(ctx, s.containerID, "KILL"); err != nil {
+		c.Logf("Failed to stop container: %v", s.containerID)
+		panic(err)
+	}
+
+	// Wait for it to stop
+	select {
+	case err := <-errCh:
+		if err != nil {
+			panic(err)
+		}
+	case <-statusCh:
+		c.Logf("Stopped: %v", s.containerID)
+	}
+
+	s.containerID = ""
 }
 
 // TestRawRequests initializes and tests using the data structures directly.
-func (s *AuthoritativeSuite) TestRawRequests (c *C) {
+func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	endpoint := fmt.Sprintf("http://%s:8080", s.containerIP(c))
 
 	pdnsCli, err := NewClient(endpoint, testAPIKey, true)
 	c.Assert(err, IsNil)
 
 	// List zones (should be 0)
-	listErr := pdnsCli.DoRequest("zones", "GET", nil, []authoritative.ZoneResponse{})
+	zoneList := make([]authoritative.ZoneResponse,0)
+	listErr := pdnsCli.DoRequest("zones", "GET", nil, &zoneList)
+	if listErr != nil {
+		errwrap.Walk(listErr, func(err error) { c.Logf("ERROR: %v", err) })
+	}
 	c.Assert(listErr, IsNil, Commentf("Failed to list zones"))
+	c.Assert(len(zoneList), Equals, 0, Commentf("Initial zone list was not 0 length?"))
 
 	// Create zone
 
@@ -189,6 +284,5 @@ func (s *AuthoritativeSuite) TestRawRequests (c *C) {
 	// Remove records from zone.
 
 	// Delete zone.
-
 
 }

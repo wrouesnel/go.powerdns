@@ -107,6 +107,11 @@ func (p *Client) resolveServerPath(u *url.URL) *url.URL {
 	return u.ResolveReference(p.serverPath)
 }
 
+// resolveRequestPath wraps all the logic needed to resolve the full URI to send a given request to a server
+func (p* Client) resolveRequestPath(u *url.URL) *url.URL {
+	return p.resolveServerPath(resolveAPIPath(p.endpoint)).ResolveReference(u)
+}
+
 // DoRequest executes a generic request against a sub-path of the PowerDNS API.
 func (p *Client) DoRequest(subPathStr string,
 	method string,
@@ -123,14 +128,14 @@ func (p *Client) DoRequest(subPathStr string,
 	}
 
 	// TODO: consider making resolveServerPath implicitly handle API path resolution
-	requestPath := p.resolveServerPath(resolveAPIPath(p.endpoint)).ResolveReference(subPath)
+	requestPath := p.resolveRequestPath(subPath)
 
 	requestBody, jerr := json.Marshal(requestType)
 	if jerr != nil {
 		return errwrap.Wrap(ErrClientRequestParsingError, jerr)
 	}
 
-	httpReq, rerr := http.NewRequest(method, requestPath.RequestURI(), bytes.NewBuffer(requestBody))
+	httpReq, rerr := http.NewRequest(method, requestPath.String(), bytes.NewBuffer(requestBody))
 	if rerr != nil {
 		return errwrap.Wrap(ErrClientRequestParsingError, rerr)
 	}
