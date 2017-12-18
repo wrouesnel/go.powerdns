@@ -3,11 +3,6 @@ launch=gsqlite3
 gsqlite3-database={{DATA_DIR}}/powerdns.db
 
 #################################
-# 8bit-dns	Allow 8bit dns queries
-#
-8bit-dns=no
-
-#################################
 # allow-axfr-ips	Allow zonetransfers only to these subnets
 #
 allow-axfr-ips=
@@ -163,11 +158,6 @@ disable-axfr=no
 disable-axfr-rectify=no
 
 #################################
-# disable-syslog	Disable logging to syslog, useful when running inside a supervisor that logs stdout
-#
-disable-syslog=yes
-
-#################################
 # disable-tcp	Do not listen to TCP queries
 #
 disable-tcp=no
@@ -183,11 +173,6 @@ distributor-threads={{CORE_COUNT}}
 dname-processing=no
 
 #################################
-# dnssec-key-cache-ttl	Seconds to cache DNSSEC keys from the database
-#
-dnssec-key-cache-ttl=30
-
-#################################
 # dnsupdate	Enable/Disable DNS update (RFC2136) support. Default is no.
 #
 dnsupdate=no
@@ -196,11 +181,6 @@ dnsupdate=no
 # do-ipv6-additional-processing	Do AAAA additional processing
 #
 do-ipv6-additional-processing=yes
-
-#################################
-# domain-metadata-cache-ttl	Seconds to cache domain metadata from the database
-#
-domain-metadata-cache-ttl=60
 
 #################################
 # edns-subnet-processing	If we should act on EDNS Subnet options
@@ -358,11 +338,6 @@ only-notify=
 # out-of-zone-additional-processing	Do out of zone additional processing
 #
 out-of-zone-additional-processing=yes
-
-#################################
-# outgoing-axfr-expand-alias	Expand ALIAS records during outgoing AXFR
-#
-outgoing-axfr-expand-alias=no
 
 #################################
 # overload-queue-length	Maximum queuelength moving to packetcache only

@@ -135,7 +135,7 @@ chmod 644 /run/powerdns/pdns.conf
 cat /pdns.schema.sql | sqlite3 ${DATA_DIR}/powerdns.db || ( echoerr "Failed initializing pdns DB." ; exit )
 
 # This structure ensures we can CTRL+C on the desktop.
-/usr/sbin/pdns_server --config-dir=/run/powerdns --guardian=no --daemon=no --disable-syslog --write-pid=no 2>&1 &
+/usr/sbin/pdns_server --config-dir=/run/powerdns --guardian=no --daemon=no --write-pid=no 2>&1 &
 PID=$!
 trap "kill -TERM $PID" INT TERM
 wait $PID
