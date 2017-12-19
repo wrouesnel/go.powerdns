@@ -56,9 +56,9 @@ type ServerInfo struct {
 type Zone struct {
 	ID     string  `json:"id"`
 	Name   string  `json:"name"`
-	Type   string  `json:"type"`
-	URL    string  `json:"url"`
-	Kind   string  `json:"kind"`
+	Type   string  `json:"type,omit_empty"`
+	URL    string  `json:"url,omit_empty"`
+	//Kind   string  `json:"kind"`
 	RRsets []RRset `json:"rrsets"`
 }
 

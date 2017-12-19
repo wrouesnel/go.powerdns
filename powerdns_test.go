@@ -27,6 +27,7 @@ import (
 	"github.com/wrouesnel/go.powerdns/pdnstypes/authoritative"
 	"time"
 	"net/http"
+	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 )
 
 const (
@@ -255,6 +256,12 @@ func (s *AuthoritativeSuite) TearDownTest(c *C) {
 	s.containerID = ""
 }
 
+func formatWrapErr(c *C, err error) {
+	if err != nil {
+		errwrap.Walk(err, func(err error) { c.Logf("ERROR: %v", err) })
+	}
+}
+
 // TestRawRequests initializes and tests using the data structures directly.
 func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	endpoint := fmt.Sprintf("http://%s:8080", s.containerIP(c))
@@ -265,13 +272,29 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	// List zones (should be 0)
 	zoneList := make([]authoritative.ZoneResponse,0)
 	listErr := pdnsCli.DoRequest("zones", "GET", nil, &zoneList)
-	if listErr != nil {
-		errwrap.Walk(listErr, func(err error) { c.Logf("ERROR: %v", err) })
-	}
+	formatWrapErr(c, listErr)
 	c.Assert(listErr, IsNil, Commentf("Failed to list zones"))
 	c.Assert(len(zoneList), Equals, 0, Commentf("Initial zone list was not 0 length?"))
 
 	// Create zone
+	createZoneRequest := authoritative.ZoneRequestNative{
+		Zone: authoritative.Zone{
+			Zone: shared.Zone{
+				ID: "zone-test-id",
+				Name: "zone.test.",
+			},
+			Kind: authoritative.KindNative,
+			SoaEdit: authoritative.SoaEditValueInceptionIncrement,
+			SoaEditAPI: authoritative.SoaEditValueInceptionIncrement,
+		},
+		Nameservers: []string{"ns1.zone.test.", "ns2.zone.test."},
+	}
+	createZoneResponse := authoritative.ZoneResponse{}
+
+	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
+	formatWrapErr(c, createErr)
+	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone"))
+	c.Assert(createZoneResponse.Zone, DeepEquals, createZoneRequest, Commentf("returned zone not equivalent to request"))
 
 	// Create zone with contents
 
