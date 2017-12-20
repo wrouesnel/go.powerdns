@@ -17,7 +17,7 @@ import (
 var (
 	// ErrClientNilError
 	ErrClientNilError                 = errors.New("No URL supplied for API client.")
-	ErrClientSubPathError			  = errors.New("Subpath URI was badly formed.")
+	ErrClientSubPathError             = errors.New("Subpath URI was badly formed.")
 	ErrClientRequestParsingError      = errors.New("Error parsing request parameters locally")
 	ErrClientRequestIsAbs             = errors.New("Absolute URI is not allowed")
 	ErrClientRequestFailed            = errors.New("Error sending request to server")
@@ -45,10 +45,10 @@ func init() {
 
 // Client client struct
 type Client struct {
-	endpoint *url.URL
-	serverPath *url.URL	// Server endpoint is added to match the multi-server functionality of pdns.
-	headers  http.Header
-	cli      *http.Client
+	endpoint   *url.URL
+	serverPath *url.URL // Server endpoint is added to match the multi-server functionality of pdns.
+	headers    http.Header
+	cli        *http.Client
 }
 
 // NewClient initializes an API client with some common default.
@@ -93,10 +93,10 @@ func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*Client, err
 	}
 
 	apiClient := &Client{
-		endpoint: endpoint,
+		endpoint:   endpoint,
 		serverPath: serverPath,
-		headers:  headers,
-		cli:      cli,
+		headers:    headers,
+		cli:        cli,
 	}
 
 	return apiClient, nil
@@ -108,7 +108,7 @@ func (p *Client) resolveServerPath(u *url.URL) *url.URL {
 }
 
 // resolveRequestPath wraps all the logic needed to resolve the full URI to send a given request to a server
-func (p* Client) resolveRequestPath(u *url.URL) *url.URL {
+func (p *Client) resolveRequestPath(u *url.URL) *url.URL {
 	return p.resolveServerPath(resolveAPIPath(p.endpoint)).ResolveReference(u)
 }
 

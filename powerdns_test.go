@@ -16,17 +16,19 @@ import (
 	"os"
 	"testing"
 
+	"io"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/pkg/idtools"
-	"io"
 
 	"bufio"
+	"net/http"
+	"time"
+
 	"github.com/hashicorp/errwrap"
 	"github.com/prometheus/prometheus/util/httputil"
 	"github.com/wrouesnel/go.powerdns/pdnstypes/authoritative"
-	"time"
-	"net/http"
 	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 )
 
@@ -215,7 +217,7 @@ func (s *AuthoritativeSuite) SetUpTest(c *C) {
 			case <-containerTimeoutCh:
 				c.Errorf("PowerDNS Authoritative container did not startup within: %v", containerTimeout)
 				c.FailNow()
-			case <- tickerCh:
+			case <-tickerCh:
 			}
 			return false
 		}()
@@ -270,7 +272,7 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	c.Assert(err, IsNil)
 
 	// List zones (should be 0)
-	zoneList := make([]authoritative.ZoneResponse,0)
+	zoneList := make([]authoritative.ZoneResponse, 0)
 	listErr := pdnsCli.DoRequest("zones", "GET", nil, &zoneList)
 	formatWrapErr(c, listErr)
 	c.Assert(listErr, IsNil, Commentf("Failed to list zones"))
@@ -280,11 +282,11 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	createZoneRequest := authoritative.ZoneRequestNative{
 		Zone: authoritative.Zone{
 			Zone: shared.Zone{
-				ID: "zone-test-id",
+				ID:   "zone-test-id",
 				Name: "zone.test.",
 			},
-			Kind: authoritative.KindNative,
-			SoaEdit: authoritative.SoaEditValueInceptionIncrement,
+			Kind:       authoritative.KindNative,
+			SoaEdit:    authoritative.SoaEditValueInceptionIncrement,
 			SoaEditAPI: authoritative.SoaEditValueInceptionIncrement,
 		},
 		Nameservers: []string{"ns1.zone.test.", "ns2.zone.test."},
@@ -294,7 +296,7 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
 	formatWrapErr(c, createErr)
 	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone"))
-	c.Assert(createZoneResponse.Zone, DeepEquals, createZoneRequest, Commentf("returned zone not equivalent to request"))
+	c.Assert(createZoneResponse.HeaderEquals(createZoneRequest), Equals, true, Commentf("returned zone not equivalent to request"))
 
 	// Create zone with contents
 

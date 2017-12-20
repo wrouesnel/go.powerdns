@@ -49,6 +49,17 @@ type Zone struct {
 	Account    string       `json:"account,omit_empty"`
 }
 
+// HeaderEquals compares the Zone header metadata that would match between a ZoneRequest and a ZoneResponse.
+// i.e. it does not compare RRsets or serials.
+func (z *Zone) HeaderEquals(a Zone) bool {
+	return z.Zone.HeaderEquals(a.Zone) &&
+		z.Kind == a.Kind &&
+		z.DNSsec == a.DNSsec &&
+		z.SoaEdit == a.SoaEdit &&
+		z.SoaEditAPI == a.SoaEditAPI &&
+		z.Account == a.Account
+}
+
 // ZoneResponse implements the extra fields which are included in a response from a PowerDNS server. It should not
 // be used to send a Zone request.
 type ZoneResponse struct {

@@ -54,12 +54,17 @@ type ServerInfo struct {
 // Zone implements the common set of fields for authoritative and recursor zones.
 // It needs to be inherited to work with the API, generally.
 type Zone struct {
-	ID     string  `json:"id"`
-	Name   string  `json:"name"`
-	Type   string  `json:"type,omit_empty"`
-	URL    string  `json:"url,omit_empty"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type,omit_empty"`
+	URL  string `json:"url,omit_empty"`
 	//Kind   string  `json:"kind"`
 	RRsets []RRset `json:"rrsets"`
+}
+
+// HeaderEquals compares static zone header information only. It ignores RRsets, Type, URL
+func (z *Zone) HeaderEquals(a Zone) bool {
+	return z.ID == a.ID && z.Name == a.Name
 }
 
 // RRset implements common RRset struct for Authoritative and Recursor APIs.
