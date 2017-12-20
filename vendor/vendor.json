@@ -93,90 +93,112 @@
 			"revisionTime": "2017-11-06T17:32:15-05:00"
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws",
 			"path": "github.com/aws/aws-sdk-go/aws",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/awserr",
 			"path": "github.com/aws/aws-sdk-go/aws/awserr",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/awsutil",
 			"path": "github.com/aws/aws-sdk-go/aws/awsutil",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/client",
 			"path": "github.com/aws/aws-sdk-go/aws/client",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/client/metadata",
 			"path": "github.com/aws/aws-sdk-go/aws/client/metadata",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/corehandlers",
 			"path": "github.com/aws/aws-sdk-go/aws/corehandlers",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/credentials",
 			"path": "github.com/aws/aws-sdk-go/aws/credentials",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds",
 			"path": "github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/credentials/endpointcreds",
 			"path": "github.com/aws/aws-sdk-go/aws/credentials/endpointcreds",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/credentials/stscreds",
 			"path": "github.com/aws/aws-sdk-go/aws/credentials/stscreds",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/defaults",
 			"path": "github.com/aws/aws-sdk-go/aws/defaults",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/ec2metadata",
 			"path": "github.com/aws/aws-sdk-go/aws/ec2metadata",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/request",
 			"path": "github.com/aws/aws-sdk-go/aws/request",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/session",
 			"path": "github.com/aws/aws-sdk-go/aws/session",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/aws/signer/v4",
 			"path": "github.com/aws/aws-sdk-go/aws/signer/v4",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/private/endpoints",
 			"path": "github.com/aws/aws-sdk-go/private/endpoints",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/private/protocol",
 			"path": "github.com/aws/aws-sdk-go/private/protocol",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/private/protocol/query",
 			"path": "github.com/aws/aws-sdk-go/private/protocol/query",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/private/protocol/query/queryutil",
 			"path": "github.com/aws/aws-sdk-go/private/protocol/query/queryutil",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/private/protocol/rest",
 			"path": "github.com/aws/aws-sdk-go/private/protocol/rest",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
 			"path": "github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/aws/aws-sdk-go/service/sts",
 			"path": "github.com/aws/aws-sdk-go/service/sts",
 			"revision": ""
 		},
@@ -479,6 +501,7 @@
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/go-ini/ini",
 			"path": "github.com/go-ini/ini",
 			"revision": ""
 		},
@@ -521,6 +544,7 @@
 			"revision": ""
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/github.com/jmespath/go-jmespath",
 			"path": "github.com/jmespath/go-jmespath",
 			"revision": ""
 		},
@@ -773,8 +797,10 @@
 			"revision": ""
 		},
 		{
+			"checksumSHA1": "jBBu+sKlVB+vh/1lSZkvVPGbopo=",
 			"path": "github.com/prometheus/prometheus/util/httputil",
-			"revision": ""
+			"revision": "43075d0215c94c1f57efeb725a7880e7ff16ae99",
+			"revisionTime": "2017-06-23T12:57:09+02:00"
 		},
 		{
 			"path": "github.com/ryanuber/go-glob",
@@ -929,10 +955,13 @@
 			"revision": ""
 		},
 		{
+			"checksumSHA1": "CEFTYXtWmgSh+3Ik1NmDaJcz4E0=",
 			"path": "gopkg.in/check.v1",
-			"revision": ""
+			"revision": "20d25e2804050c1cd24a7eea1e7a6447dd0e74ec",
+			"revisionTime": "2016-12-08T12:13:25-06:00"
 		},
 		{
+			"origin": "github.com/wrouesnel/go.powerdns/vendor/gopkg.in/yaml.v2",
 			"path": "gopkg.in/yaml.v2",
 			"revision": ""
 		},
