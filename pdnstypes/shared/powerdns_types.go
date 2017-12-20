@@ -61,7 +61,7 @@ type Zone struct {
 	// Type is specified in the spec but doesn't seem to appear in the JSON.
 	Type string `json:"type,omit_empty"`
 	// URL is a "calculated" field that can be returned. It should be ignored from comparisons.
-	URL  string `json:"url,omit_empty"`
+	URL string `json:"url,omit_empty"`
 	//Kind   string  `json:"kind"`
 	RRsets RRsets `json:"rrsets"`
 }
@@ -74,58 +74,248 @@ func (z *Zone) HeaderEquals(a Zone) bool {
 // RRsets implements a collection of RRsets to allow helper methods
 type RRsets []RRset
 
-// ToNameTypeMap converts an RRsets list to a name-type nested map structure
-func (rrs RRsets) ToNameTypeMap() map[string]map[string]RRset {
-	r := make(map[string]map[string]RRset, len(rrs))
+// ToNameTypeMap converts an RRsets list to a map
+func (rrs RRsets) ToMap() map[RRsetUniqueName]RRset {
+	r := make(map[RRsetUniqueName]RRset, len(rrs))
 
 	for _, v := range rrs {
-		typeMap, found := r[v.Name]
-		if !found {
-			typeMap = make(map[string]RRset)
-			r[v.Name] = typeMap
-		}
-
-		if _, rrsetFound := typeMap[v.Type]; !rrsetFound {
-			typeMap[v.Type] = v
-		}
+		r[v.UniqueName()] = v.Copy()
 	}
 
 	return r
 }
 
-// ToTypeNameMap converts an RRsets list to a type-name nested map structure
-func (rrs RRsets) ToTypeNameMap() map[string]map[string]RRset {
-	r := make(map[string]map[string]RRset, len(rrs))
+// Difference returns RRsets which are in this RRset but not in b down to the Record level.
+// i.e. two identical RRs with different records will result in that RR being included in the
+// result with only those records missing from this RRset.
+func (rrs RRsets) Difference(b RRsets) RRsets {
+	us := rrs.ToMap()
+	them := b.ToMap()
+	result := RRsets{}
 
-	for _, v := range rrs {
-		nameMap, found := r[v.Type]
-		if !found {
-			nameMap = make(map[string]RRset)
-			r[v.Type] = nameMap
-		}
+	for k, v := range us {
+		// If key missing entirely, add it...
+		if there_v, found := them[k]; !found {
+			result = append(result, v.Copy())
+		} else {
+			hasDifferences := false
+			// Has record differences?
+			recordDifferences := v.Records.Difference(there_v.Records)
+			if len(recordDifferences) > 0 {
+				hasDifferences = true
+			}
 
-		if _, rrsetFound := nameMap[v.Name]; !rrsetFound {
-			nameMap[v.Name] = v
+			// Has header differences?
+			if v.TTL != there_v.TTL || v.ChangeType != there_v.ChangeType {
+				hasDifferences = true
+			}
+
+			// Note: Ignore name/type - should/must be the same
+
+			// Build a "difference" RRset and add it.
+			if hasDifferences {
+				diffrr := v.Copy()
+				diffrr.Records = recordDifferences
+				result = append(result, v.Copy())
+			}
 		}
 	}
 
-	return r
+	return result
+}
+
+// IsSubsetOf returns true if all RRsets in this collection are also in b. Differences in records even if they are
+// inclusive will cause this to return false.
+func (r RRsets) IsSubsetOf(b RRsets) bool {
+	return len(r.Difference(b)) == 0
+}
+
+// Intersection returns RRsets which are in this RRset and b down to the Record level.
+func (rrs RRsets) Intersection(b RRsets) RRsets {
+	us := rrs.ToMap()
+	them := b.ToMap()
+	result := RRsets{}
+
+	for k, v := range us {
+		if there_v, found := them[k]; found {
+			if v.TTL != there_v.TTL {
+				continue
+			}
+
+			if v.ChangeType != there_v.ChangeType {
+				continue
+			}
+
+			intersectingRecords := v.Records.Intersection(there_v.Records)
+
+			intersectingRr := v.Copy()
+			v.Records = intersectingRecords
+
+			result = append(result, intersectingRr)
+		}
+	}
+
+	return result
+}
+
+// Merge returns the Union of this rrset with b. Where header fields conflict, they are resolved in favor of
+// this rrset.
+func (rrs RRsets) Merge(b RRsets) RRsets {
+	union := map[RRsetUniqueName]RRset{}
+
+	// Copy our side.
+	for _, v := range rrs {
+		union[v.UniqueName()] = v
+	}
+
+	// Copy there side.
+	for _, v := range b {
+		un := v.UniqueName()
+		if _, found := union[un]; !found {
+			union[un] = v
+		} else {
+			// Merge there side.
+			existing := union[un]
+			existing.Records = union[un].Records.Union(v.Records)
+			union[un] = existing
+		}
+	}
+
+	result := make(RRsets, len(union))
+
+	for _, v := range union {
+		result = append(result, v)
+	}
+	return result
+}
+
+// RRsetUniqueName is the name and type of an RRset - sufficient to uniquely
+// distinguish is.
+type RRsetUniqueName struct {
+	Name string
+	Type string
 }
 
 // RRset implements common RRset struct for Authoritative and Recursor APIs.
 type RRset struct {
-	Name       string   `json:"name"`
-	Type       string   `json:"type"`
-	TTL        int      `json:"ttl"`
-	Records    []Record `json:"records"`
-	ChangeType string   `json:"changetype,omit_empty"` // Only relevant if patching
+	Name       string  `json:"name"`
+	Type       string  `json:"type"`
+	TTL        int     `json:"ttl"`
+	Records    Records `json:"records"`
+	ChangeType string  `json:"changetype,omit_empty"` // Only relevant if patching
+}
+
+// Make a copy of the RRset
+func (rr *RRset) Copy() RRset {
+	copy := *rr
+	copy.Records = rr.Records.Copy()
+
+	return copy
+}
+
+// Merge returns an RRset using the header fields of this RRset and the union'd records of b.
+func (rr *RRset) Merge(b RRset) RRset {
+	result := *rr // Tiny hack to avoid a double copy of records. Take note!
+	result.Records = rr.Records.Union(b.Records)
+	return result
+}
+
+// UniqueName returns a populated RRsetUniqueName for this RRset
+func (rr *RRset) UniqueName() RRsetUniqueName {
+	return RRsetUniqueName{
+		rr.Name,
+		rr.Type,
+	}
+}
+
+// Records represents a collection of records.
+type Records []Record
+
+// ToMap returns the Records collections as a map of unique elements
+func (r Records) ToMap() map[Record]struct{} {
+	result := make(map[Record]struct{})
+	for _, v := range r {
+		result[v.Copy()] = struct{}{}
+	}
+	return result
+}
+
+// Difference returns the records which are in this Records collections but not in b.
+func (r Records) Difference(b Records) Records {
+	us := r.ToMap()
+	them := b.ToMap()
+	results := Records{}
+
+	for k := range us {
+		if _, found := them[k]; !found {
+			results = append(results, k.Copy())
+		}
+	}
+
+	return results
+}
+
+// Difference returns the records which are in this Records collections and b.
+func (r Records) Intersection(b Records) Records {
+	us := r.ToMap()
+	them := b.ToMap()
+	results := Records{}
+
+	for k := range us {
+		if _, found := them[k]; found {
+			results = append(results, k.Copy())
+		}
+	}
+
+	return results
+}
+
+// Union returns Records consisting of the merged contents of both Records collections.
+func (r Records) Union(b Records) Records {
+	us := r.ToMap()
+	them := b.ToMap()
+	union := make(map[Record]struct{})
+
+	for k := range us {
+		union[k] = struct{}{}
+	}
+
+	for k := range them {
+		union[k] = struct{}{}
+	}
+
+	results := Records{}
+
+	for k := range union {
+		results = append(results, k.Copy())
+	}
+
+	return results
+}
+
+// IsSubsetOf returns true if all records in this collection are also in b.
+func (r Records) IsSubsetOf(b Records) bool {
+	return len(r.Difference(b)) == 0
+}
+
+// Make a value-based copy of Records element
+func (r Records) Copy() Records {
+	result := make(Records, len(r))
+	for _, v := range r {
+		result = append(result, v.Copy())
+	}
+	return result
 }
 
 // Record struct
 type Record struct {
 	Content  string `json:"content"`
 	Disabled bool   `json:"disabled"`
-	// set-ptr is explicitly ignored because it's rules are so specific at the moment
+	SetPtr   bool   `json:"set-ptr"`
+}
+
+func (r *Record) Copy() Record {
+	return *r
 }
 
 // Comment record which can be attached to RRsets
@@ -133,6 +323,11 @@ type Comment struct {
 	Content    string    `json:"content"`
 	Account    string    `json:"account"`
 	ModifiedAt time.Time `json:"modified_at"`
+}
+
+// Make a deep copy
+func (c *Comment) Copy() Comment {
+	return *c
 }
 
 // RRsets struct

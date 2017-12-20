@@ -32,9 +32,10 @@ import (
 	"github.com/wrouesnel/go.powerdns/pdnstypes/authoritative"
 	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 
-	lorem "github.com/drhodes/golorem"
 	"math/rand"
 	"strings"
+
+	lorem "github.com/drhodes/golorem"
 )
 
 const (
@@ -290,9 +291,9 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 
 	// Create a bunch more zones
 	createdZones := []string{}
-	for i := 0 ; i < 30; i++ {
+	for i := 0; i < 30; i++ {
 		host := lorem.Host()
-		createdZones = append(createdZones,host)
+		createdZones = append(createdZones, host)
 		s.testRawRequestsCreateZone(c, pdnsCli, fmt.Sprintf("%s.", host))
 	}
 
@@ -300,8 +301,7 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	s.testRawRequestsListZones(c, pdnsCli, 31)
 
 	// Create zone with contents
-
-	// List multiple zones
+	s.testRawRequestsCreateZoneWithContents(c, pdnsCli, "populated.test.zone.")
 
 	// Add records to zone.
 
@@ -326,7 +326,7 @@ func (s *AuthoritativeSuite) testRawRequestsListZones(c *C, pdnsCli *Client, num
 func (s *AuthoritativeSuite) testRawRequestsCreateZone(c *C, pdnsCli *Client, zoneName string) {
 	// Generate some nameservers
 	nameservers := []string{}
-	for i := 1 + rand.Intn(20) ; i > 0 ; i-- {
+	for i := 1 + rand.Intn(20); i > 0; i-- {
 		nameservers = append(nameservers, fmt.Sprintf("ns%v.%s", i, zoneName))
 	}
 
@@ -361,24 +361,26 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 		for i := 0; i < rand.Intn(30); i++ {
 			record := shared.Record{
 				Disabled: rand.Intn(1) == 1,
-				Content: fmt.Sprintf("%d.%d.%d.%d", rand.Intn(254), rand.Intn(254), rand.Intn(254), rand.Intn(254)),
+				Content:  fmt.Sprintf("%d.%d.%d.%d", rand.Intn(254), rand.Intn(254), rand.Intn(254), rand.Intn(254)),
 			}
 			records = append(records, record)
 		}
 
 		newRR := shared.RRset{
-			Name: host,
-			Type: "A",
-			TTL: rand.Int(),
+			Name:    host,
+			Type:    "A",
+			TTL:     rand.Int(),
 			Records: records,
 		}
 		rrsets = append(rrsets, newRR)
 	}
 
+	c.Logf("Creating zone %s with %d records", zoneName, len(rrsets))
+
 	createZoneRequest := authoritative.ZoneRequestNative{
 		Zone: authoritative.Zone{
 			Zone: shared.Zone{
-				Name: zoneName,
+				Name:   zoneName,
 				RRsets: rrsets,
 			},
 			Kind:       authoritative.KindNative,
@@ -397,8 +399,8 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 			spew.Sdump(createZoneRequest.Zone),
 			spew.Sdump(createZoneResponse.Zone)))
 
-	c.Assert(createZoneResponse.RRsets.ToNameTypeMap(), DeepEquals, createZoneRequest.RRsets.ToNameTypeMap(),
-		Commentf("rrsets from create request and response request do not match"))
+	c.Assert(createZoneRequest.RRsets.IsSubsetOf(createZoneResponse.RRsets), Equals, true,
+		Commentf("not all RRsets from the create request were found in the response"))
 }
 
 func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Client) {
