@@ -88,7 +88,7 @@ release-bin: $(PLATFORM_BINS)
 release: $(PLATFORM_TARS)
 
 style: tools
-	gometalinter --disable-all --enable=gofmt --vendor $(GO_DIRS)
+	gometalinter --disable-all --enable=gofmt --enable=goimports --vendor $(GO_DIRS)
 
 lint: tools
 	@echo Using $(CONCURRENT_LINTERS) processes
