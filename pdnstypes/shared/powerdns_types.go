@@ -54,9 +54,13 @@ type ServerInfo struct {
 // Zone implements the common set of fields for authoritative and recursor zones.
 // It needs to be inherited to work with the API, generally.
 type Zone struct {
-	ID   string `json:"id"`
+	// ID is explicitly excluded because it appears you can't set it to a value which isn't the exact same as Name.
+	// PowerDNS seems happy to handle requests without it, so we don't bother calculating it either.
+	//ID   string `json:"id"`
 	Name string `json:"name"`
+	// Type is specified in the spec but doesn't seem to appear in the JSON.
 	Type string `json:"type,omit_empty"`
+	// URL is a "calculated" field that can be returned. It should be ignored from comparisons.
 	URL  string `json:"url,omit_empty"`
 	//Kind   string  `json:"kind"`
 	RRsets []RRset `json:"rrsets"`
@@ -64,7 +68,7 @@ type Zone struct {
 
 // HeaderEquals compares static zone header information only. It ignores RRsets, Type, URL
 func (z *Zone) HeaderEquals(a Zone) bool {
-	return z.ID == a.ID && z.Name == a.Name
+	return z.Name == a.Name
 }
 
 // RRset implements common RRset struct for Authoritative and Recursor APIs.

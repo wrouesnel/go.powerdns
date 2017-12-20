@@ -26,10 +26,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/prometheus/prometheus/util/httputil"
 	"github.com/wrouesnel/go.powerdns/pdnstypes/authoritative"
 	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
+
+	lorem "github.com/drhodes/golorem"
+	"math/rand"
 )
 
 const (
@@ -40,6 +44,15 @@ const (
 // Hook up gocheck into the "go test" runner.
 func Test(t *testing.T) { TestingT(t) }
 
+// formatWrapErr makes handling errwrap returns easier in tests
+func formatWrapErr(c *C, err error) {
+	if err != nil {
+		errwrap.Walk(err, func(err error) { c.Logf("ERROR: %v", err) })
+	}
+}
+
+// AuthoritativeSuite is a set of integration tests run against PowerDNS. A new container is initialized per-test,
+// so it's structure does consist of multiple functional tests per test.
 type AuthoritativeSuite struct {
 	dockerCli   *client.Client
 	imageID     string
@@ -258,12 +271,6 @@ func (s *AuthoritativeSuite) TearDownTest(c *C) {
 	s.containerID = ""
 }
 
-func formatWrapErr(c *C, err error) {
-	if err != nil {
-		errwrap.Walk(err, func(err error) { c.Logf("ERROR: %v", err) })
-	}
-}
-
 // TestRawRequests initializes and tests using the data structures directly.
 func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	endpoint := fmt.Sprintf("http://%s:8080", s.containerIP(c))
@@ -272,35 +279,28 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	c.Assert(err, IsNil)
 
 	// List zones (should be 0)
-	zoneList := make([]authoritative.ZoneResponse, 0)
-	listErr := pdnsCli.DoRequest("zones", "GET", nil, &zoneList)
-	formatWrapErr(c, listErr)
-	c.Assert(listErr, IsNil, Commentf("Failed to list zones"))
-	c.Assert(len(zoneList), Equals, 0, Commentf("Initial zone list was not 0 length?"))
+	s.testRawRequestsListZones(c, pdnsCli, 0)
 
 	// Create zone
-	createZoneRequest := authoritative.ZoneRequestNative{
-		Zone: authoritative.Zone{
-			Zone: shared.Zone{
-				ID:   "zone-test-id",
-				Name: "zone.test.",
-			},
-			Kind:       authoritative.KindNative,
-			SoaEdit:    authoritative.SoaEditValueInceptionIncrement,
-			SoaEditAPI: authoritative.SoaEditValueInceptionIncrement,
-		},
-		Nameservers: []string{"ns1.zone.test.", "ns2.zone.test."},
-	}
-	createZoneResponse := authoritative.ZoneResponse{}
+	s.testRawRequestsCreateZone(c, pdnsCli, "test.zone.")
 
-	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
-	formatWrapErr(c, createErr)
-	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone"))
-	c.Assert(createZoneResponse.HeaderEquals(createZoneRequest), Equals, true, Commentf("returned zone not equivalent to request"))
+	// List zones
+	s.testRawRequestsListZones(c, pdnsCli, 1)
+
+	// Create a bunch more zones
+	createdZones := []string{}
+	for i := 0 ; i < 30; i++ {
+		host := lorem.Host()
+		createdZones = append(createdZones,host)
+		s.testRawRequestsCreateZone(c, pdnsCli, fmt.Sprintf("%s.", host))
+	}
+
+	// Got the expected number of zones?
+	s.testRawRequestsListZones(c, pdnsCli, 31)
 
 	// Create zone with contents
 
-	// List zones
+	// List multiple zones
 
 	// Add records to zone.
 
@@ -309,5 +309,68 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	// Remove records from zone.
 
 	// Delete zone.
+
+}
+
+// testRawRequestsListZonesNone tests listing zones when there none
+func (s *AuthoritativeSuite) testRawRequestsListZones(c *C, pdnsCli *Client, numZones int) {
+	zoneList := make([]authoritative.ZoneResponse, 0)
+	listErr := pdnsCli.DoRequest("zones", "GET", nil, &zoneList)
+	formatWrapErr(c, listErr)
+
+	c.Assert(listErr, IsNil, Commentf("Failed to list zones"))
+	c.Assert(len(zoneList), Equals, 0, Commentf("Initial zone list was not %v length?", numZones))
+}
+
+func (s *AuthoritativeSuite) testRawRequestsCreateZone(c *C, pdnsCli *Client, zoneName string) {
+	// Generate some nameservers
+	nameservers := []string{}
+	for i := 1 + rand.Intn(20) ; i > 0 ; i-- {
+		nameservers = append(nameservers, fmt.Sprintf("ns%v.%s.", i, zoneName))
+	}
+
+	createZoneRequest := authoritative.ZoneRequestNative{
+		Zone: authoritative.Zone{
+			Zone: shared.Zone{
+				Name: zoneName,
+			},
+			Kind:       authoritative.KindNative,
+			SoaEdit:    authoritative.SoaEditValueInceptionIncrement,
+			SoaEditAPI: authoritative.SoaEditValueInceptionIncrement,
+		},
+		Nameservers: nameservers,
+	}
+	createZoneResponse := authoritative.ZoneResponse{}
+
+	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
+	formatWrapErr(c, createErr)
+	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone"))
+	c.Assert(createZoneResponse.Zone.HeaderEquals(createZoneRequest.Zone), Equals, true,
+		Commentf("returned zone not equivalent to request: Sent: %s\nGot: %s\n",
+			spew.Sdump(createZoneRequest.Zone),
+			spew.Sdump(createZoneResponse.Zone)))
+}
+
+func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli *Client) {
+
+}
+
+func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Client) {
+
+}
+
+func (s *AuthoritativeSuite) testRawRequestsListRecordsInZone(c *C, pdnsCli *Client) {
+
+}
+
+func (s *AuthoritativeSuite) testRawRequestsRemoveRecordsFromZone(c *C, pdnsCli *Client) {
+
+}
+
+func (s *AuthoritativeSuite) testRawRequestsPatchRecordsInZone(c *C, pdnsCli *Client) {
+
+}
+
+func (s *AuthoritativeSuite) testRawRequestsDeleteZone(c *C, pdnsCli *Client) {
 
 }
