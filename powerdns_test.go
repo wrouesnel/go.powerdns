@@ -394,14 +394,15 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 	createZoneResponse := authoritative.ZoneResponse{}
 	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
 	formatWrapErr(c, createErr)
-	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone"))
+	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone:\n%s",spew.Sdump(createZoneRequest)))
 	c.Assert(createZoneResponse.Zone.HeaderEquals(createZoneRequest.Zone), Equals, true,
 		Commentf("returned zone not equivalent to request: Sent: %s\nGot: %s\n",
 			spew.Sdump(createZoneRequest.Zone),
 			spew.Sdump(createZoneResponse.Zone)))
 
-	c.Assert(createZoneRequest.RRsets.IsSubsetOf(createZoneResponse.RRsets), Equals, true,
-		Commentf("not all RRsets from the create request were found in the response"))
+	rrsetDiff := createZoneRequest.RRsets.Difference(createZoneResponse.RRsets)
+	c.Assert(len(rrsetDiff) > 0, Equals, true,
+		Commentf("not all RRsets from the create request were found in the response\n%s", spew.Sdump(rrsetDiff)))
 }
 
 //func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Client) {
