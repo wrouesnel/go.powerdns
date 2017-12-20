@@ -394,7 +394,7 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 	createZoneResponse := authoritative.ZoneResponse{}
 	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
 	formatWrapErr(c, createErr)
-	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone:\n%s",spew.Sdump(createZoneRequest)))
+	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone:\n%s", spew.Sdump(createZoneRequest)))
 	c.Assert(createZoneResponse.Zone.HeaderEquals(createZoneRequest.Zone), Equals, true,
 		Commentf("returned zone not equivalent to request: Sent: %s\nGot: %s\n",
 			spew.Sdump(createZoneRequest.Zone),
