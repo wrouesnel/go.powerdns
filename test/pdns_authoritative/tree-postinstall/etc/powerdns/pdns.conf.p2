@@ -18,11 +18,6 @@ allow-dnsupdate-from=
 allow-notify-from=
 
 #################################
-# allow-recursion	List of subnets that are allowed to recurse
-#
-allow-recursion=
-
-#################################
 # allow-unsigned-notify	Allow unsigned notifications for TSIG secured domains
 #
 allow-unsigned-notify=no
@@ -96,11 +91,6 @@ control-console=no
 daemon=no
 
 #################################
-# default-ksk-algorithms	Default KSK algorithms
-#
-default-ksk-algorithms=ecdsa256
-
-#################################
 # default-ksk-size	Default KSK size (0 means default)
 #
 default-ksk-size=0
@@ -131,11 +121,6 @@ default-soa-name=a.misconfigured.powerdns.server
 # rouesnwi: set to 60 seconds since everything else is and makes mistakes
 # less punishing. Increase if this becomes problematic.
 default-ttl=60
-
-#################################
-# default-zsk-algorithms	Default ZSK algorithms
-#
-default-zsk-algorithms=
 
 #################################
 # default-zsk-size	Default ZSK size (0 means default)
@@ -191,11 +176,6 @@ edns-subnet-processing=no
 # entropy-source	If set, read entropy from this file
 #
 entropy-source=/dev/urandom
-
-#################################
-# experimental-lua-policy-script	Lua script for the policy engine
-#
-experimental-lua-policy-script=
 
 #################################
 # forward-dnsupdate	A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.
@@ -378,13 +358,6 @@ queue-limit=1500
 # receiver-threads	Default number of receiver threads to start
 #
 receiver-threads=1
-
-#################################
-# recursive-cache-ttl	Seconds to store packets for recursive queries in the PacketCache
-#
-recursive-cache-ttl=10
-
-recursor=no
 
 retrieval-threads=2
 

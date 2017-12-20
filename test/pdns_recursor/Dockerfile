@@ -5,9 +5,15 @@ FROM ${DOCKER_PREFIX}ubuntu:xenial
 ARG URL_P2CLI=https://github.com/wrouesnel/p2cli/releases/download/r4/p2
 ARG URL_GOSU=https://github.com/tianon/gosu/releases/download/1.10/gosu-amd64
 
+ARG URL_PDNS_REPO=http://repo.powerdns.com/ubuntu
+
+COPY tree-preinstall/ /
+
 COPY *.asc /tmp/
 
 RUN apt-key add /tmp/*.asc && rm -f /tmp/*.asc
+
+RUN echo "deb [arch=amd64] $URL_PDNS_REPO xenial-rec-41 main" > /etc/apt/sources.list.d/pdns.list
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
     pdns-recursor pdns-backend-sqlite3 wget && \

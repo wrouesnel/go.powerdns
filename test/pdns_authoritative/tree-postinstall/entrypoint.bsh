@@ -100,7 +100,7 @@ fi
 
 log "Starting up with hostname: $HOSTNAME"
 
-DATA_DIR=/data
+export DATA_DIR=/data
 
 mkdir -p $DATA_DIR
 chmod 755 $DATA_DIR
@@ -132,7 +132,9 @@ mkdir -m 744 -p /run/powerdns
 p2 -t /etc/powerdns/pdns.conf.p2 -o /run/powerdns/pdns.conf || ( echoerr "Templating pdns config failed." ; exit 1 )
 chmod 644 /run/powerdns/pdns.conf
 
+log "Writing powerdns db..."
 cat /pdns.schema.sql | sqlite3 ${DATA_DIR}/powerdns.db || ( echoerr "Failed initializing pdns DB." ; exit )
+chown pdns:pdns ${DATA_DIR}/powerdns.db
 
 # This structure ensures we can CTRL+C on the desktop.
 /usr/sbin/pdns_server --config-dir=/run/powerdns --guardian=no --daemon=no --write-pid=no 2>&1 &
