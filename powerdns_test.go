@@ -85,32 +85,32 @@ func (s *AuthoritativeSuite) SetUpSuite(c *C) {
 	}
 	s.dockerCli = cli
 
-	contextDir, relDockerfile, err := build.GetContextFromLocalDir("test/pdns_authoritative",
+	contextDir, relDockerfile, cerr := build.GetContextFromLocalDir("test/pdns_authoritative",
 		"test/pdns_authoritative/Dockerfile")
-	if err != nil {
-		panic(err)
+	if cerr != nil {
+		panic(cerr)
 	}
 
 	// read from a directory into tar archive
-	excludes, err := build.ReadDockerignore(contextDir)
-	c.Assert(err, IsNil)
+	excludes, rerr := build.ReadDockerignore(contextDir)
+	c.Assert(rerr, IsNil)
 
-	if err := build.ValidateContextDirectory(contextDir, excludes); err != nil {
-		c.Fatalf("error checking context: '%s'.", err)
+	if verr := build.ValidateContextDirectory(contextDir, excludes); verr != nil {
+		c.Fatalf("error checking context: '%s'.", verr)
 	}
 
 	// And canonicalize dockerfile name to a platform-independent one
-	relDockerfile, err = archive.CanonicalTarNameForPath(relDockerfile)
-	if err != nil {
-		c.Fatalf("cannot canonicalize dockerfile path %s: %v", relDockerfile, err)
+	relDockerfile, aerr := archive.CanonicalTarNameForPath(relDockerfile)
+	if aerr != nil {
+		c.Fatalf("cannot canonicalize dockerfile path %s: %v", relDockerfile, aerr)
 	}
 
 	excludes = build.TrimBuildFilesFromExcludes(excludes, relDockerfile, false)
-	buildCtx, err := archive.TarWithOptions(contextDir, &archive.TarOptions{
+	buildCtx, terr := archive.TarWithOptions(contextDir, &archive.TarOptions{
 		ExcludePatterns: excludes,
 		ChownOpts:       &idtools.IDPair{UID: 0, GID: 0},
 	})
-	c.Assert(err, IsNil)
+	c.Assert(terr, IsNil)
 
 	c.Log("Sending build context to docker")
 
@@ -146,7 +146,7 @@ func (s *AuthoritativeSuite) SetUpSuite(c *C) {
 
 	// Set the image ID of the build
 	s.imageID = imageID
-	c.Log("Build Image: %v", s.imageID)
+	c.Logf("Build Image: %v", s.imageID)
 }
 
 // SetUpTest spawns a new pdns_authoritative server for each test in this harness.
@@ -166,9 +166,9 @@ func (s *AuthoritativeSuite) SetUpTest(c *C) {
 	}
 	netConfig := &network.NetworkingConfig{}
 
-	resp, err := s.dockerCli.ContainerCreate(ctx, containerConfig, hostConfig, netConfig, "")
-	if err != nil {
-		panic(err)
+	resp, cerr := s.dockerCli.ContainerCreate(ctx, containerConfig, hostConfig, netConfig, "")
+	if cerr != nil {
+		panic(cerr)
 	}
 
 	if err := s.dockerCli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
@@ -290,10 +290,10 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	s.testRawRequestsListZones(c, pdnsCli, 1)
 
 	// Create a bunch more zones
-	createdZones := []string{}
+	//createdZones := []string{}
 	for i := 0; i < 30; i++ {
 		host := lorem.Host()
-		createdZones = append(createdZones, host)
+		//createdZones = append(createdZones, host)
 		s.testRawRequestsCreateZone(c, pdnsCli, fmt.Sprintf("%s.", host))
 	}
 
@@ -320,7 +320,8 @@ func (s *AuthoritativeSuite) testRawRequestsListZones(c *C, pdnsCli *Client, num
 	formatWrapErr(c, listErr)
 
 	c.Assert(listErr, IsNil, Commentf("Failed to list zones"))
-	c.Assert(len(zoneList), Equals, numZones, Commentf("Zone list was not %v length?\nGot:\n%s", numZones, spew.Sdump(zoneList)))
+	c.Assert(len(zoneList), Equals, numZones, Commentf("Zone list was not %v length?\nGot:\n%s",
+		numZones, spew.Sdump(zoneList)))
 }
 
 func (s *AuthoritativeSuite) testRawRequestsCreateZone(c *C, pdnsCli *Client, zoneName string) {
@@ -403,22 +404,22 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 		Commentf("not all RRsets from the create request were found in the response"))
 }
 
-func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Client) {
-
-}
-
-func (s *AuthoritativeSuite) testRawRequestsListRecordsInZone(c *C, pdnsCli *Client) {
-
-}
-
-func (s *AuthoritativeSuite) testRawRequestsRemoveRecordsFromZone(c *C, pdnsCli *Client) {
-
-}
-
-func (s *AuthoritativeSuite) testRawRequestsPatchRecordsInZone(c *C, pdnsCli *Client) {
-
-}
-
-func (s *AuthoritativeSuite) testRawRequestsDeleteZone(c *C, pdnsCli *Client) {
-
-}
+//func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Client) {
+//
+//}
+//
+//func (s *AuthoritativeSuite) testRawRequestsListRecordsInZone(c *C, pdnsCli *Client) {
+//
+//}
+//
+//func (s *AuthoritativeSuite) testRawRequestsRemoveRecordsFromZone(c *C, pdnsCli *Client) {
+//
+//}
+//
+//func (s *AuthoritativeSuite) testRawRequestsPatchRecordsInZone(c *C, pdnsCli *Client) {
+//
+//}
+//
+//func (s *AuthoritativeSuite) testRawRequestsDeleteZone(c *C, pdnsCli *Client) {
+//
+//}

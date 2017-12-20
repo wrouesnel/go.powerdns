@@ -74,7 +74,7 @@ func (z *Zone) HeaderEquals(a Zone) bool {
 // RRsets implements a collection of RRsets to allow helper methods
 type RRsets []RRset
 
-// ToNameTypeMap converts an RRsets list to a map
+// ToMap converts an RRsets list to a map
 func (rrs RRsets) ToMap() map[RRsetUniqueName]RRset {
 	r := make(map[RRsetUniqueName]RRset, len(rrs))
 
@@ -95,18 +95,18 @@ func (rrs RRsets) Difference(b RRsets) RRsets {
 
 	for k, v := range us {
 		// If key missing entirely, add it...
-		if there_v, found := them[k]; !found {
+		if thereV, found := them[k]; !found {
 			result = append(result, v.Copy())
 		} else {
 			hasDifferences := false
 			// Has record differences?
-			recordDifferences := v.Records.Difference(there_v.Records)
+			recordDifferences := v.Records.Difference(thereV.Records)
 			if len(recordDifferences) > 0 {
 				hasDifferences = true
 			}
 
 			// Has header differences?
-			if v.TTL != there_v.TTL || v.ChangeType != there_v.ChangeType {
+			if v.TTL != thereV.TTL || v.ChangeType != thereV.ChangeType {
 				hasDifferences = true
 			}
 
@@ -126,8 +126,8 @@ func (rrs RRsets) Difference(b RRsets) RRsets {
 
 // IsSubsetOf returns true if all RRsets in this collection are also in b. Differences in records even if they are
 // inclusive will cause this to return false.
-func (r RRsets) IsSubsetOf(b RRsets) bool {
-	return len(r.Difference(b)) == 0
+func (rrs RRsets) IsSubsetOf(b RRsets) bool {
+	return len(rrs.Difference(b)) == 0
 }
 
 // Intersection returns RRsets which are in this RRset and b down to the Record level.
@@ -137,16 +137,16 @@ func (rrs RRsets) Intersection(b RRsets) RRsets {
 	result := RRsets{}
 
 	for k, v := range us {
-		if there_v, found := them[k]; found {
-			if v.TTL != there_v.TTL {
+		if thereV, found := them[k]; found {
+			if v.TTL != thereV.TTL {
 				continue
 			}
 
-			if v.ChangeType != there_v.ChangeType {
+			if v.ChangeType != thereV.ChangeType {
 				continue
 			}
 
-			intersectingRecords := v.Records.Intersection(there_v.Records)
+			intersectingRecords := v.Records.Intersection(thereV.Records)
 
 			intersectingRr := v.Copy()
 			v.Records = intersectingRecords
@@ -205,7 +205,7 @@ type RRset struct {
 	ChangeType string  `json:"changetype,omit_empty"` // Only relevant if patching
 }
 
-// Make a copy of the RRset
+// Copy makes a copy of the RRset
 func (rr *RRset) Copy() RRset {
 	copy := *rr
 	copy.Records = rr.Records.Copy()
@@ -255,7 +255,7 @@ func (r Records) Difference(b Records) Records {
 	return results
 }
 
-// Difference returns the records which are in this Records collections and b.
+// Intersection returns the records which are in this Records collections and b.
 func (r Records) Intersection(b Records) Records {
 	us := r.ToMap()
 	them := b.ToMap()
@@ -298,7 +298,7 @@ func (r Records) IsSubsetOf(b Records) bool {
 	return len(r.Difference(b)) == 0
 }
 
-// Make a value-based copy of Records element
+// Copy makes a value-based copy of Records element
 func (r Records) Copy() Records {
 	result := make(Records, len(r))
 	for _, v := range r {
@@ -314,6 +314,7 @@ type Record struct {
 	SetPtr   bool   `json:"set-ptr"`
 }
 
+// Copy makes a value-based copy of a Record
 func (r *Record) Copy() Record {
 	return *r
 }
@@ -325,12 +326,7 @@ type Comment struct {
 	ModifiedAt time.Time `json:"modified_at"`
 }
 
-// Make a deep copy
+// Copy makes a value based copy of a Comment
 func (c *Comment) Copy() Comment {
 	return *c
 }
-
-// RRsets struct
-//type RRsets struct {
-//	Sets []RRset `json:"rrsets"`
-//}
