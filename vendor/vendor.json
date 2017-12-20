@@ -93,6 +93,94 @@
 			"revisionTime": "2017-11-06T17:32:15-05:00"
 		},
 		{
+			"path": "github.com/aws/aws-sdk-go/aws",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/awserr",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/awsutil",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/client",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/client/metadata",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/corehandlers",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/credentials",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/credentials/endpointcreds",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/credentials/stscreds",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/defaults",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/ec2metadata",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/request",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/session",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/aws/signer/v4",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/private/endpoints",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/private/protocol",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/private/protocol/query",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/private/protocol/query/queryutil",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/private/protocol/rest",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
+			"revision": ""
+		},
+		{
+			"path": "github.com/aws/aws-sdk-go/service/sts",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "Qkka8gj2W/1BH/IWeiEfHn6DaGk=",
 			"path": "github.com/client9/misspell",
 			"revision": "9ce5d979ffdaca6385988d7ad1079a33ec942d20",
@@ -109,6 +197,10 @@
 			"path": "github.com/containerd/continuity/pathdriver",
 			"revision": "b2b946a77f5973f420514090d6f6dd58b08303f0",
 			"revisionTime": "2017-12-15T11:55:39-08:00"
+		},
+		{
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": ""
 		},
 		{
 			"checksumSHA1": "ULnk7ggN82JFO0ZdBCmSsQH3Vh8=",
@@ -383,6 +475,14 @@
 			"revisionTime": "2017-01-27T10:51:30+01:00"
 		},
 		{
+			"path": "github.com/drhodes/golorem",
+			"revision": ""
+		},
+		{
+			"path": "github.com/go-ini/ini",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "wn2shNJMwRZpvuvkf1s7h0wvqHI=",
 			"path": "github.com/gogo/protobuf/proto",
 			"revision": "35b81a066e522fb86ece043a8ef1dbfa10b4fed1",
@@ -418,6 +518,10 @@
 		},
 		{
 			"path": "github.com/jgautheron/goconst/cmd/goconst",
+			"revision": ""
+		},
+		{
+			"path": "github.com/jmespath/go-jmespath",
 			"revision": ""
 		},
 		{
@@ -659,6 +763,18 @@
 			"path": "github.com/pkg/errors",
 			"revision": "e881fd58d78e04cf6d0de1217f8707c8cc2249bc",
 			"revisionTime": "2017-12-16T02:03:16-05:00"
+		},
+		{
+			"path": "github.com/prometheus/common/model",
+			"revision": ""
+		},
+		{
+			"path": "github.com/prometheus/prometheus/config",
+			"revision": ""
+		},
+		{
+			"path": "github.com/prometheus/prometheus/util/httputil",
+			"revision": ""
 		},
 		{
 			"path": "github.com/ryanuber/go-glob",
