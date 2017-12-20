@@ -63,12 +63,53 @@ type Zone struct {
 	// URL is a "calculated" field that can be returned. It should be ignored from comparisons.
 	URL  string `json:"url,omit_empty"`
 	//Kind   string  `json:"kind"`
-	RRsets []RRset `json:"rrsets"`
+	RRsets RRsets `json:"rrsets"`
 }
 
 // HeaderEquals compares static zone header information only. It ignores RRsets, Type, URL
 func (z *Zone) HeaderEquals(a Zone) bool {
 	return z.Name == a.Name
+}
+
+// RRsets implements a collection of RRsets to allow helper methods
+type RRsets []RRset
+
+// ToNameTypeMap converts an RRsets list to a name-type nested map structure
+func (rrs RRsets) ToNameTypeMap() map[string]map[string]RRset {
+	r := make(map[string]map[string]RRset, len(rrs))
+
+	for _, v := range rrs {
+		typeMap, found := r[v.Name]
+		if !found {
+			typeMap = make(map[string]RRset)
+			r[v.Name] = typeMap
+		}
+
+		if _, rrsetFound := typeMap[v.Type]; !rrsetFound {
+			typeMap[v.Type] = v
+		}
+	}
+
+	return r
+}
+
+// ToTypeNameMap converts an RRsets list to a type-name nested map structure
+func (rrs RRsets) ToTypeNameMap() map[string]map[string]RRset {
+	r := make(map[string]map[string]RRset, len(rrs))
+
+	for _, v := range rrs {
+		nameMap, found := r[v.Type]
+		if !found {
+			nameMap = make(map[string]RRset)
+			r[v.Type] = nameMap
+		}
+
+		if _, rrsetFound := nameMap[v.Name]; !rrsetFound {
+			nameMap[v.Name] = v
+		}
+	}
+
+	return r
 }
 
 // RRset implements common RRset struct for Authoritative and Recursor APIs.

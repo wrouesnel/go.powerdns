@@ -34,6 +34,7 @@ import (
 
 	lorem "github.com/drhodes/golorem"
 	"math/rand"
+	"strings"
 )
 
 const (
@@ -314,19 +315,19 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 
 // testRawRequestsListZonesNone tests listing zones when there none
 func (s *AuthoritativeSuite) testRawRequestsListZones(c *C, pdnsCli *Client, numZones int) {
-	zoneList := make([]authoritative.ZoneResponse, 0)
+	zoneList := []authoritative.ZoneResponse{}
 	listErr := pdnsCli.DoRequest("zones", "GET", nil, &zoneList)
 	formatWrapErr(c, listErr)
 
 	c.Assert(listErr, IsNil, Commentf("Failed to list zones"))
-	c.Assert(len(zoneList), Equals, 0, Commentf("Initial zone list was not %v length?", numZones))
+	c.Assert(len(zoneList), Equals, numZones, Commentf("Zone list was not %v length?\nGot:\n%s", numZones, spew.Sdump(zoneList)))
 }
 
 func (s *AuthoritativeSuite) testRawRequestsCreateZone(c *C, pdnsCli *Client, zoneName string) {
 	// Generate some nameservers
 	nameservers := []string{}
 	for i := 1 + rand.Intn(20) ; i > 0 ; i-- {
-		nameservers = append(nameservers, fmt.Sprintf("ns%v.%s.", i, zoneName))
+		nameservers = append(nameservers, fmt.Sprintf("ns%v.%s", i, zoneName))
 	}
 
 	createZoneRequest := authoritative.ZoneRequestNative{
@@ -341,7 +342,6 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZone(c *C, pdnsCli *Client, zo
 		Nameservers: nameservers,
 	}
 	createZoneResponse := authoritative.ZoneResponse{}
-
 	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
 	formatWrapErr(c, createErr)
 	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone"))
@@ -351,8 +351,54 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZone(c *C, pdnsCli *Client, zo
 			spew.Sdump(createZoneResponse.Zone)))
 }
 
-func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli *Client) {
+func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli *Client, zoneName string) {
+	// Generate some dummy records
+	rrsets := shared.RRsets{}
+	for i := 0; i < rand.Intn(100); i++ {
+		host := strings.Join([]string{lorem.Host(), zoneName}, ".")
 
+		records := []shared.Record{}
+		for i := 0; i < rand.Intn(30); i++ {
+			record := shared.Record{
+				Disabled: rand.Intn(1) == 1,
+				Content: fmt.Sprintf("%d.%d.%d.%d", rand.Intn(254), rand.Intn(254), rand.Intn(254), rand.Intn(254)),
+			}
+			records = append(records, record)
+		}
+
+		newRR := shared.RRset{
+			Name: host,
+			Type: "A",
+			TTL: rand.Int(),
+			Records: records,
+		}
+		rrsets = append(rrsets, newRR)
+	}
+
+	createZoneRequest := authoritative.ZoneRequestNative{
+		Zone: authoritative.Zone{
+			Zone: shared.Zone{
+				Name: zoneName,
+				RRsets: rrsets,
+			},
+			Kind:       authoritative.KindNative,
+			SoaEdit:    authoritative.SoaEditValueInceptionIncrement,
+			SoaEditAPI: authoritative.SoaEditValueInceptionIncrement,
+		},
+		Nameservers: []string{},
+	}
+
+	createZoneResponse := authoritative.ZoneResponse{}
+	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
+	formatWrapErr(c, createErr)
+	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone"))
+	c.Assert(createZoneResponse.Zone.HeaderEquals(createZoneRequest.Zone), Equals, true,
+		Commentf("returned zone not equivalent to request: Sent: %s\nGot: %s\n",
+			spew.Sdump(createZoneRequest.Zone),
+			spew.Sdump(createZoneResponse.Zone)))
+
+	c.Assert(createZoneResponse.RRsets.ToNameTypeMap(), DeepEquals, createZoneRequest.RRsets.ToNameTypeMap(),
+		Commentf("rrsets from create request and response request do not match"))
 }
 
 func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Client) {
