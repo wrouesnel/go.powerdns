@@ -1,0 +1,12 @@
+sudo: required
+services:
+- docker
+language: go
+go:
+- '1.9'
+script:
+- make style
+- make lint
+- make test
+- tools/bin/goveralls -coverprofile=cover.out -service=travis-ci
+
