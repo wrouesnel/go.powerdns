@@ -22,9 +22,33 @@ var (
 	ErrClientRequestIsAbs             = errors.New("Absolute URI is not allowed")
 	ErrClientRequestFailed            = errors.New("Error sending request to server")
 	ErrClientServerUnknownStatus      = errors.New("Server returned a StatusCode it shouldn't have.")
-	ErrClientServerResponseUnreadable = errors.New("Server returned a response that could not be deserialized")
 	ErrClientServerResponse           = errors.New("Server returned an error response")
 )
+
+// ErrClientServerResponseUnreadable is returned when the server sends us something non-sensical, and includes
+// the body of the response.
+type ErrClientServerResponseUnreadable struct {
+	serverResponse []byte
+}
+
+func (err ErrClientServerResponseUnreadable) Error() string {
+	return "Server returned a response that could not be deserialized"
+}
+
+// ResponseBodyString returns the response body as a string.
+func (err ErrClientServerResponseUnreadable) ResponseBodyString() string {
+	if err.serverResponse != nil {
+		return string(err.serverResponse)
+	}
+	return ""
+}
+
+// ResponseBody returns a copy of the response body, if any, which was sent by the server
+func (err ErrClientServerResponseUnreadable) ResponseBody() []byte {
+	r := make([]byte, len(err.serverResponse))
+	copy(r, err.serverResponse)
+	return r
+}
 
 const (
 	apiPathString = "api/v1/"
@@ -161,7 +185,7 @@ func (p *Client) DoRequest(subPathStr string,
 
 	respBody, ierr := ioutil.ReadAll(resp.Body)
 	if ierr != nil {
-		return errwrap.Wrap(ErrClientServerResponseUnreadable, ierr)
+		return errwrap.Wrap(ErrClientServerResponseUnreadable{respBody}, ierr)
 	}
 
 	// Check if an HTTP error code was returned, in which case we need to return an error type.
@@ -171,7 +195,7 @@ func (p *Client) DoRequest(subPathStr string,
 			// Should be able to unmarshal an error type.
 			responseErr := shared.Error{}
 			if uerr := json.Unmarshal(respBody, &responseErr); uerr != nil {
-				return errwrap.Wrap(ErrClientServerResponseUnreadable, uerr)
+				return errwrap.Wrap(ErrClientServerResponseUnreadable{respBody}, uerr)
 			}
 			return errwrap.Wrap(ErrClientServerResponse, responseErr)
 		}
@@ -181,7 +205,7 @@ func (p *Client) DoRequest(subPathStr string,
 
 	// Success! Unmarshal into the user type
 	if juerr := json.Unmarshal(respBody, responseType); juerr != nil {
-		return errwrap.Wrap(ErrClientServerResponseUnreadable, juerr)
+		return errwrap.Wrap(ErrClientServerResponseUnreadable{respBody}, juerr)
 	}
 
 	return nil
