@@ -9,6 +9,9 @@ script:
 - make lint
 - make test
 - tools/bin/goveralls -coverprofile=cover.out -service=travis-ci
+env:
+  global:
+    - LINTER_DEADLINE=180s
 cache:
   directories:
   - tools/bin
