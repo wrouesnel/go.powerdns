@@ -26,6 +26,15 @@ const (
 	SoaEditValueNone               SoaEditValue = "NONE"
 )
 
+// RRsetChangeType is a fixed set of string constants used when patching zones.
+type RRsetChangeType string
+
+// nolint: golint
+const (
+	RRsetReplace RRsetChangeType = "REPLACE"
+	RRSetDelete  RRsetChangeType = "DELETE"
+)
+
 // Zone implements the authoritative nameserver zone subtype.
 type Zone struct {
 	shared.Zone
@@ -55,8 +64,8 @@ func (z *Zone) HeaderEquals(a Zone) bool {
 // be used to send a Zone request.
 type ZoneResponse struct {
 	Zone
-	Serial         int `json:"serial"`
-	NotifiedSerial int `json:"notified_serial"`
+	Serial         uint32 `json:"serial"`
+	NotifiedSerial uint32 `json:"notified_serial"`
 }
 
 // ZoneRequestMaster implements the fields used when creating a master zone
@@ -76,9 +85,33 @@ type ZoneRequestNative struct {
 	Nameservers []string `json:"nameservers"`
 }
 
+// PatchRRsets is a collection of PatchRRSet structs suitable for use with a patch request.
+type PatchRRSets []PatchRRSet
+
+// CopyToRRSets makes a value-based copy of all contained RRsets and returns a regular
+// RRset object.
+func (prrs PatchRRSets) CopyToRRSets() shared.RRsets {
+	result := make(shared.RRsets, len(prrs))
+	for _, v := range prrs {
+		result = append(result, v.CopyToRRSet())
+	}
+	return result
+}
+
+// PatchRRset is the RRSet type including the ChangeType field.
+type PatchRRSet struct {
+	shared.RRset
+	ChangeType RRsetChangeType `json:"changetype"`
+}
+
+// CopyToRRSet makes a Copy of the contained RRset and returns it.
+func (prrs *PatchRRSet) CopyToRRSet() shared.RRset {
+	return prrs.RRset.Copy()
+}
+
 // PatchZoneRequest implements the fields used when creating a zone PATCH request
 type PatchZoneRequest struct {
-	RRSets shared.RRsets `json:"rrsets"`
+	RRSets PatchRRSets `json:"rrsets"`
 }
 
 // PatchZoneResponse implements the fields used when receiving the result of a successful zone PATCH request

@@ -114,11 +114,6 @@ func (rrs RRsets) Difference(b RRsets) RRsets {
 				hasDifferences = true
 			}
 
-			// Has header differences?
-			if v.TTL != thereV.TTL || v.ChangeType != thereV.ChangeType {
-				hasDifferences = true
-			}
-
 			// Note: Ignore name/type - should/must be the same
 
 			// Build a "difference" RRset and add it.
@@ -148,10 +143,6 @@ func (rrs RRsets) Intersection(b RRsets) RRsets {
 	for k, v := range us {
 		if thereV, found := them[k]; found {
 			if v.TTL != thereV.TTL {
-				continue
-			}
-
-			if v.ChangeType != thereV.ChangeType {
 				continue
 			}
 
@@ -205,22 +196,12 @@ type RRsetUniqueName struct {
 	Type string
 }
 
-// RRsetChangeType is a fixed set of string constants used when patching zones.
-type RRsetChangeType string
-
-// nolint: golint
-const (
-	RRsetReplace RRsetChangeType = "REPLACE"
-	RRSetDelete  RRsetChangeType = "DELETE"
-)
-
 // RRset implements common RRset struct for Authoritative and Recursor APIs.
 type RRset struct {
-	Name       string          `json:"name"`
-	Type       string          `json:"type"`
-	TTL        int             `json:"ttl"`
-	Records    Records         `json:"records"`
-	ChangeType RRsetChangeType `json:"changetype,omitempty"` // Only relevant if patching
+	Name    string  `json:"name"`
+	Type    string  `json:"type"`
+	TTL     uint32  `json:"ttl"`
+	Records Records `json:"records"`
 }
 
 // Copy makes a copy of the RRset

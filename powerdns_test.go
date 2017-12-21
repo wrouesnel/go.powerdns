@@ -319,7 +319,7 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	s.testRawRequestsCreateZoneWithContents(c, pdnsCli, "populated.test.zone.")
 
 	// Add records to zone.
-	s.testRawRequestsAddRecordsToZone(c, pdnsCli, "test.zone")
+	s.testRawRequestsAddRecordsToZone(c, pdnsCli, "test.zone.")
 
 	// List Records
 
@@ -389,7 +389,7 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 		newRR := shared.RRset{
 			Name:    host,
 			Type:    "A",
-			TTL:     rand.Int(),
+			TTL:     rand.Uint32(),
 			Records: records,
 		}
 		rrsets = append(rrsets, newRR)
@@ -423,14 +423,14 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 			spew.Sdump(createZoneResponse.Zone)))
 
 	rrsetDiff := createZoneRequest.RRsets.Difference(createZoneResponse.RRsets)
-	c.Assert(len(rrsetDiff) > 0, Equals, true,
-		Commentf("not all RRsets from the create request were found in the response\nStruct Dump:%s",
+	c.Assert(len(rrsetDiff), Equals, 0,
+		Commentf("not all RRsets from the Create Zone request were found in the response\nGo:\n%s",
 			spew.Sdump(rrsetDiff)))
 }
 
 func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Client, zoneName string) shared.RRsets {
 	// Generate some dummy records
-	rrsets := shared.RRsets{}
+	rrsets := authoritative.PatchRRSets{}
 	for i := 0; i < rand.Intn(100); i++ {
 		host := strings.Join([]string{lorem.Host(), zoneName}, ".")
 
@@ -443,12 +443,14 @@ func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Clie
 			records = append(records, record)
 		}
 
-		newRR := shared.RRset{
-			Name:       host,
-			Type:       "A",
-			TTL:        rand.Int(),
-			Records:    records,
-			ChangeType: shared.RRsetReplace,
+		newRR := authoritative.PatchRRSet{
+			RRset: shared.RRset{
+				Name:    host,
+				Type:    "A",
+				TTL:     rand.Uint32(),
+				Records: records,
+			},
+			ChangeType: authoritative.RRsetReplace,
 		}
 		rrsets = append(rrsets, newRR)
 	}
@@ -458,13 +460,20 @@ func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Clie
 	}
 	patchZoneResponse := authoritative.PatchZoneResponse{}
 
-	createErr := pdnsCli.DoRequest("zones", "POST", &patchZoneRequest, &patchZoneResponse)
+	createErr := pdnsCli.DoRequest(fmt.Sprintf("zones/%s", zoneName), "PATCH", &patchZoneRequest, &patchZoneResponse)
 	formatWrapErr(c, createErr)
 
-	c.Assert(patchZoneRequest.RRSets.IsSubsetOf(patchZoneResponse.RRsets), Equals, true,
-		Commentf("Zone response did not include all elements of request"))
+	//differences := patchZoneRequest.RRSets.CopyToRRSets().Difference(patchZoneResponse.RRsets)
 
-	return rrsets.Copy()
+	c.Logf("%s\n%s", jsonFmt(c, &patchZoneRequest), jsonFmt(c, &patchZoneResponse))
+
+	c.FailNow()
+
+	//c.Assert(patchZoneRequest.RRSets.CopyToRRSets().IsSubsetOf(patchZoneResponse.RRsets), Equals, true,
+	//	Commentf("Zone response did not include all elements of request:Request:\n%s\nResponse:\n%s\n",
+	//		jsonFmt(c,&patchZoneRequest), jsonFmt(c,&patchZoneResponse)))
+
+	return rrsets.CopyToRRSets()
 }
 
 //
