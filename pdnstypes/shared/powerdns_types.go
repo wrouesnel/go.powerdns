@@ -74,6 +74,15 @@ func (z *Zone) HeaderEquals(a Zone) bool {
 // RRsets implements a collection of RRsets to allow helper methods
 type RRsets []RRset
 
+// RRsets makes a value-based copy of the containing RRsets
+func (rrs RRsets) Copy() RRsets {
+	result := make(RRsets, len(rrs))
+	for _, rr := range rrs {
+		result = append(result, rr.Copy())
+	}
+	return result
+}
+
 // ToMap converts an RRsets list to a map
 func (rrs RRsets) ToMap() map[RRsetUniqueName]RRset {
 	r := make(map[RRsetUniqueName]RRset, len(rrs))
@@ -196,13 +205,22 @@ type RRsetUniqueName struct {
 	Type string
 }
 
+// RRsetChangeType is a fixed set of string constants used when patching zones.
+type RRsetChangeType string
+
+// nolint: golint
+const (
+	RRsetReplace RRsetChangeType = "REPLACE"
+	RRSetDelete  RRsetChangeType = "DELETE"
+)
+
 // RRset implements common RRset struct for Authoritative and Recursor APIs.
 type RRset struct {
-	Name       string  `json:"name"`
-	Type       string  `json:"type"`
-	TTL        int     `json:"ttl"`
-	Records    Records `json:"records"`
-	ChangeType string  `json:"changetype,omitempty"` // Only relevant if patching
+	Name       string          `json:"name"`
+	Type       string          `json:"type"`
+	TTL        int             `json:"ttl"`
+	Records    Records         `json:"records"`
+	ChangeType RRsetChangeType `json:"changetype,omitempty"` // Only relevant if patching
 }
 
 // Copy makes a copy of the RRset

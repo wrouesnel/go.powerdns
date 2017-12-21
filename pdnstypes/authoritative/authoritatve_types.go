@@ -26,15 +26,6 @@ const (
 	SoaEditValueNone               SoaEditValue = "NONE"
 )
 
-// RRsetChangeType is a fixed set of string constants used when patching zones.
-type RRsetChangeType string
-
-// nolint: golint
-const (
-	RRsetReplace RRsetChangeType = "REPLACE"
-	RRSetDelete  RRsetChangeType = "DELETE"
-)
-
 // Zone implements the authoritative nameserver zone subtype.
 type Zone struct {
 	shared.Zone
@@ -85,8 +76,10 @@ type ZoneRequestNative struct {
 	Nameservers []string `json:"nameservers"`
 }
 
-// RRsetPatchRequest implements the fields used when patching a specific RRset.
-type RRsetPatchRequest struct {
-	shared.RRset
-	ChangeType RRsetChangeType `json:"changetype"`
+// PatchZoneRequest implements the fields used when creating a zone PATCH request
+type PatchZoneRequest struct {
+	RRSets shared.RRsets `json:"rrsets"`
 }
+
+// PatchZoneResponse implements the fields used when receiving the result of a successful zone PATCH request
+type PatchZoneResponse ZoneResponse
