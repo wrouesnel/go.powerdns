@@ -16,6 +16,7 @@ RUN apt-key add /tmp/*.asc && rm -f /tmp/*.asc
 RUN echo "deb [arch=amd64] $URL_PDNS_REPO xenial-auth-41 main" > /etc/apt/sources.list.d/pdns.list
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
+    ca-certificates \
     pdns-server pdns-backend-sqlite3 wget sqlite3 && \
     # gosu
     wget -O /usr/local/bin/gosu "${URL_GOSU}" && \
