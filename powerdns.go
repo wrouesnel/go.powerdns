@@ -16,13 +16,13 @@ import (
 // nolint: golint
 var (
 	// ErrClientNilError
-	ErrClientNilError                 = errors.New("No URL supplied for API client.")
-	ErrClientSubPathError             = errors.New("Subpath URI was badly formed.")
-	ErrClientRequestParsingError      = errors.New("Error parsing request parameters locally")
-	ErrClientRequestIsAbs             = errors.New("Absolute URI is not allowed")
-	ErrClientRequestFailed            = errors.New("Error sending request to server")
-	ErrClientServerUnknownStatus      = errors.New("Server returned a StatusCode it shouldn't have.")
-	ErrClientServerResponse           = errors.New("Server returned an error response")
+	ErrClientNilError            = errors.New("No URL supplied for API client.")
+	ErrClientSubPathError        = errors.New("Subpath URI was badly formed.")
+	ErrClientRequestParsingError = errors.New("Error parsing request parameters locally")
+	ErrClientRequestIsAbs        = errors.New("Absolute URI is not allowed")
+	ErrClientRequestFailed       = errors.New("Error sending request to server")
+	ErrClientServerUnknownStatus = errors.New("Server returned a StatusCode it shouldn't have.")
+	ErrClientServerResponse      = errors.New("Server returned an error response")
 )
 
 // ErrClientServerResponseUnreadable is returned when the server sends us something non-sensical, and includes
@@ -194,18 +194,24 @@ func (p *Client) DoRequest(subPathStr string,
 		if 400 <= resp.StatusCode && resp.StatusCode <= 599 {
 			// Should be able to unmarshal an error type.
 			responseErr := shared.Error{}
+			var wrappedErr error
 			if uerr := json.Unmarshal(respBody, &responseErr); uerr != nil {
-				return errwrap.Wrap(ErrClientServerResponseUnreadable{respBody}, uerr)
+				wrappedErr = errwrap.Wrap(ErrClientServerResponseUnreadable{respBody}, uerr)
+			} else {
+				wrappedErr = responseErr
 			}
-			return errwrap.Wrap(ErrClientServerResponse, responseErr)
+			wrappedErr = errwrap.Wrap(ErrClientServerResponse, responseErr)
+			return wrappedErr
 		}
 		// Did not succeed, but did not recognize the status code either.
 		return ErrClientServerUnknownStatus
 	}
 
-	// Success! Unmarshal into the user type
-	if juerr := json.Unmarshal(respBody, responseType); juerr != nil {
-		return errwrap.Wrap(ErrClientServerResponseUnreadable{respBody}, juerr)
+	// Success! Unmarshal into the user type (if usertype supplied)
+	if responseType != nil {
+		if juerr := json.Unmarshal(respBody, responseType); juerr != nil {
+			return errwrap.Wrap(ErrClientServerResponseUnreadable{respBody}, juerr)
+		}
 	}
 
 	return nil
