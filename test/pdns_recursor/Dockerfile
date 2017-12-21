@@ -13,7 +13,9 @@ COPY *.asc /tmp/
 
 RUN apt-key add /tmp/*.asc && rm -f /tmp/*.asc
 
-RUN echo "deb [arch=amd64] $URL_PDNS_REPO xenial-rec-41 main" > /etc/apt/sources.list.d/pdns.list
+ARG PDNS_REC_REPO_TAG
+
+RUN echo "deb [arch=amd64] $URL_PDNS_REPO $PDNS_REC_REPO_TAG main" > /etc/apt/sources.list.d/pdns.list
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
     ca-certificates \

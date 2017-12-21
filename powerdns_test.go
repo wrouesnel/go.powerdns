@@ -66,6 +66,12 @@ func jsonFmt(c *C, inp interface{}) string {
 	return outbuf.String()
 }
 
+// Add an environment variable to the build-args
+func addBuildEnv(BuildArgs map[string]*string, envName string) {
+	r := os.Getenv(envName)
+	BuildArgs[envName] = &r
+}
+
 // AuthoritativeSuite is a set of integration tests run against PowerDNS. A new container is initialized per-test,
 // so it's structure does consist of multiple functional tests per test.
 type AuthoritativeSuite struct {
@@ -127,17 +133,13 @@ func (s *AuthoritativeSuite) SetUpSuite(c *C) {
 
 	c.Log("Sending build context to docker")
 
-	httpProxy := os.Getenv("http_proxy")
-	httpsProxy := os.Getenv("https_proxy")
-	dockerPrefix := os.Getenv("DOCKER_PREFIX")
-
 	buildOptions := types.ImageBuildOptions{
-		BuildArgs: map[string]*string{
-			"http_proxy":    &httpProxy,
-			"https_proxy":   &httpsProxy,
-			"DOCKER_PREFIX": &dockerPrefix,
-		},
+		BuildArgs: map[string]*string{},
 	}
+	addBuildEnv(buildOptions.BuildArgs, "http_proxy")
+	addBuildEnv(buildOptions.BuildArgs, "https_proxy")
+	addBuildEnv(buildOptions.BuildArgs, "DOCKER_PREFIX")
+	addBuildEnv(buildOptions.BuildArgs, "PDNS_AUTH_REPO_TAG")
 
 	response, err := cli.ImageBuild(ctx, buildCtx, buildOptions)
 	c.Assert(err, IsNil)
