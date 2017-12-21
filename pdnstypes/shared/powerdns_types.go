@@ -8,7 +8,7 @@ import (
 // Error struct
 type Error struct {
 	Message string  `json:"error"`
-	Errors  []Error `json:"errors,omit_empty"`
+	Errors  []Error `json:"errors,omitempty"`
 }
 
 // Error Returns
@@ -59,9 +59,9 @@ type Zone struct {
 	//ID   string `json:"id"`
 	Name string `json:"name"`
 	// Type is specified in the spec but doesn't seem to appear in the JSON.
-	Type string `json:"type,omit_empty"`
+	Type string `json:"type,omitempty"`
 	// URL is a "calculated" field that can be returned. It should be ignored from comparisons.
-	URL string `json:"url,omit_empty"`
+	URL string `json:"url,omitempty"`
 	//Kind   string  `json:"kind"`
 	RRsets RRsets `json:"rrsets"`
 }
@@ -202,7 +202,7 @@ type RRset struct {
 	Type       string  `json:"type"`
 	TTL        int     `json:"ttl"`
 	Records    Records `json:"records"`
-	ChangeType string  `json:"changetype,omit_empty"` // Only relevant if patching
+	ChangeType string  `json:"changetype,omitempty"` // Only relevant if patching
 }
 
 // Copy makes a copy of the RRset

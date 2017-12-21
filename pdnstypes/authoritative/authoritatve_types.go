@@ -46,7 +46,7 @@ type Zone struct {
 	//"presigned": <bool>,
 	SoaEdit    SoaEditValue `json:"soa_edit"`
 	SoaEditAPI SoaEditValue `json:"soa_edit_api"`
-	Account    string       `json:"account,omit_empty"`
+	Account    string       `json:"account,omitempty"`
 }
 
 // HeaderEquals compares the Zone header metadata that would match between a ZoneRequest and a ZoneResponse.
