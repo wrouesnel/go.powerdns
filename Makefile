@@ -1,6 +1,6 @@
 # PowerDNS test Dockerfile repo tags to use by default. Can be overridden for CI matrix tests.
-PDNS_AUTH_REPO_TAG ?= xenial-auth-40
-PDNS_REC_REPO_TAG ?= xenial-rec-40
+export PDNS_AUTH_REPO_TAG ?= xenial-auth-40
+export PDNS_REC_REPO_TAG ?= xenial-rec-40
 
 COVERDIR = .coverage
 TOOLDIR = tools
