@@ -35,6 +35,8 @@ import (
 	"math/rand"
 	"strings"
 
+	"bytes"
+
 	lorem "github.com/drhodes/golorem"
 )
 
@@ -51,6 +53,17 @@ func formatWrapErr(c *C, err error) {
 	if err != nil {
 		errwrap.Walk(err, func(err error) { c.Logf("ERROR: %v", err) })
 	}
+}
+
+func jsonFmt(c *C, inp interface{}) string {
+	outp, err := json.Marshal(inp)
+	c.Assert(err, IsNil)
+	outbuf := bytes.NewBuffer(nil)
+
+	jerr := json.Indent(outbuf, outp, "", "  ")
+	c.Assert(jerr, IsNil)
+
+	return outbuf.String()
 }
 
 // AuthoritativeSuite is a set of integration tests run against PowerDNS. A new container is initialized per-test,
@@ -345,7 +358,10 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZone(c *C, pdnsCli *Client, zo
 	createZoneResponse := authoritative.ZoneResponse{}
 	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
 	formatWrapErr(c, createErr)
-	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone"))
+
+	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone: Go:\n%s\nJSON:%s\n",
+		spew.Sdump(createZoneRequest), jsonFmt(c, &createZoneRequest)))
+
 	c.Assert(createZoneResponse.Zone.HeaderEquals(createZoneRequest.Zone), Equals, true,
 		Commentf("returned zone not equivalent to request: Sent: %s\nGot: %s\n",
 			spew.Sdump(createZoneRequest.Zone),
@@ -394,7 +410,10 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 	createZoneResponse := authoritative.ZoneResponse{}
 	createErr := pdnsCli.DoRequest("zones", "POST", &createZoneRequest, &createZoneResponse)
 	formatWrapErr(c, createErr)
-	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone:\n%s", spew.Sdump(createZoneRequest)))
+
+	c.Assert(createErr, IsNil, Commentf("Failed to create a new zone:Go:\n%s\nJSON:%s\n",
+		spew.Sdump(createZoneRequest), jsonFmt(c, &createZoneRequest)))
+
 	c.Assert(createZoneResponse.Zone.HeaderEquals(createZoneRequest.Zone), Equals, true,
 		Commentf("returned zone not equivalent to request: Sent: %s\nGot: %s\n",
 			spew.Sdump(createZoneRequest.Zone),
@@ -402,7 +421,8 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 
 	rrsetDiff := createZoneRequest.RRsets.Difference(createZoneResponse.RRsets)
 	c.Assert(len(rrsetDiff) > 0, Equals, true,
-		Commentf("not all RRsets from the create request were found in the response\n%s", spew.Sdump(rrsetDiff)))
+		Commentf("not all RRsets from the create request were found in the response\nStruct Dump:%s",
+			spew.Sdump(rrsetDiff)))
 }
 
 //func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Client) {
