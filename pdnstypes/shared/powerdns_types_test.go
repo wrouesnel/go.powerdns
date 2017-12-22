@@ -10,50 +10,8 @@ import (
 	"github.com/drhodes/golorem"
 	"github.com/satori/go.uuid"
 	. "gopkg.in/check.v1"
+	"github.com/wrouesnel/go.powerdns/testutil"
 )
-
-// Temporary list of dnstypes
-var dnsTypes []string = []string{
-	"A",
-	"AAAA",
-	"AFSDB",
-	"APL",
-	"CAA",
-	"CDNSKEY",
-	"CDS",
-	"CERT",
-	"CNAME",
-	"DHCID",
-	"DLV",
-	"DNAME",
-	"DNSKEY",
-	"DS",
-	"HIP",
-	"IPSECKEY",
-	"KEY",
-	"KX",
-	"LOC",
-	"MX",
-	"NAPTR",
-	"NS",
-	"NSEC",
-	"NSEC3",
-	"NSEC3PARAM",
-	"OPENPGPKEY",
-	"PTR",
-	"RRSIG",
-	"RP",
-	"SIG",
-	"SOA",
-	"SRV",
-	"SSHFP",
-	"TA",
-	"TKEY",
-	"TLSA",
-	"TSIG",
-	"TXT",
-	"URI",
-}
 
 // Hook up gocheck into the "go test" runner.
 func Test(t *testing.T) { TestingT(t) }
@@ -62,33 +20,7 @@ type SharedTypeSuite struct{}
 
 var _ = Suite(&SharedTypeSuite{})
 
-func makeRecords() Records {
-	// Make records
-	records := Records{}
-	for i := 0; i < 1+rand.Intn(100); i++ {
-		record := Record{
-			Disabled: rand.Intn(1) == 1,
-			Content:  fmt.Sprintf("%d.%d.%d.%d", rand.Intn(254), rand.Intn(254), rand.Intn(254), rand.Intn(254)),
-		}
-		records = append(records, record)
-	}
-	return records
-}
 
-func makeRRsets() RRsets {
-	rrsets := RRsets{}
-	for i := 0; i < 1+rand.Intn(100); i++ {
-		rrset := RRset{
-			Name:    lorem.Host(),
-			Type:    dnsTypes[rand.Intn(len(dnsTypes))],
-			TTL:     rand.Uint32(),
-			Records: makeRecords(),
-		}
-
-		rrsets = append(rrsets, rrset)
-	}
-	return rrsets
-}
 
 func (s *SharedTypeSuite) TestComment(c *C) {
 	// Initialize a new comment
@@ -125,7 +57,7 @@ func (s *SharedTypeSuite) TestRecord(c *C) {
 }
 
 func (s *SharedTypeSuite) TestRecords(c *C) {
-	records := makeRecords()
+	records := testutil.MakeRecords()
 
 	// Test ToMap
 	mappedRecords := records.ToMap()
@@ -180,7 +112,7 @@ func (s *SharedTypeSuite) TestRRSet(c *C) {
 		Name:    "testrr.com",
 		Type:    "A",
 		TTL:     100000,
-		Records: makeRecords(),
+		Records: testutil.MakeRecords(),
 	}
 	// Check we equal ourselves
 	c.Assert(rrset.Equals(rrset), Equals, true)
@@ -199,7 +131,7 @@ func (s *SharedTypeSuite) TestRRSet(c *C) {
 	c.Assert(copiedRRset.Equals(rrset), Equals, true)
 
 	// Add some new records to the copy and check it reports different
-	copiedRRset.Records = copiedRRset.Records.Union(makeRecords())
+	copiedRRset.Records = copiedRRset.Records.Union(testutil.MakeRecords())
 	c.Assert(copiedRRset.Equals(rrset), Equals, false)
 
 	// Test merging
@@ -219,10 +151,10 @@ func (s *SharedTypeSuite) TestRRSet(c *C) {
 			Name:    fmt.Sprintf("domain-%s.com", uuid.NewV4().String()),
 			Type:    "",
 			TTL:     rand.Uint32(),
-			Records: makeRecords(),
+			Records: testutil.MakeRecords(),
 		}
 
-		for _, v := range dnsTypes {
+		for _, v := range testutil.DnsTypes() {
 			newrr := rrset.Copy()
 			rrset.Type = v
 			// We should never find a match since we're generating unique names and types
@@ -234,7 +166,7 @@ func (s *SharedTypeSuite) TestRRSet(c *C) {
 }
 
 func (s *SharedTypeSuite) TestRRSets(c *C) {
-	rrs := makeRRsets()
+	rrs := testutil.MakeRRsets(".")
 
 	// Test ToMap
 	mappedRecords := rrs.ToMap()
@@ -264,7 +196,7 @@ func (s *SharedTypeSuite) TestRRSets(c *C) {
 	// Test Difference
 	diffRRSCopy := rrs.Copy()
 
-	appendedRRs := makeRRsets()
+	appendedRRs := testutil.MakeRRsets(".")
 	diffRRSCopy = append(diffRRSCopy, appendedRRs...)
 	diffedRecords := diffRRSCopy.Difference(rrs)
 	c.Assert(len(diffedRecords), Equals, len(appendedRRs))
@@ -285,10 +217,7 @@ func (s *SharedTypeSuite) TestRRSets(c *C) {
 }
 
 func (s *SharedTypeSuite) TestZone(c *C) {
-	z := Zone{
-		Name:   lorem.Host(),
-		RRsets: makeRRsets(),
-	}
+	z := testutil.MakeZone()
 
 	c.Assert(z.HeaderEquals(z), Equals, true)
 	c.Assert(z.Equals(z), Equals, true)
@@ -299,7 +228,7 @@ func (s *SharedTypeSuite) TestZone(c *C) {
 	c.Assert(z.Equals(b), Equals, true)
 
 	// Edit the RRsets and check it does not match
-	b.RRsets = makeRRsets()
+	b.RRsets = testutil.MakeRRsets(z.Name)
 	c.Assert(z.HeaderEquals(b), Equals, true)
 	c.Assert(z.Equals(b), Equals, false)
 }
