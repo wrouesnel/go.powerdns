@@ -76,6 +76,13 @@ func (z *Zone) Equals(a Zone) bool {
 	return z.HeaderEquals(a) && z.RRsets.Equals(a.RRsets)
 }
 
+// Copy makes a value based copy of a Zone and its contents
+func (z *Zone) Copy() Zone {
+	r := *z
+	r.RRsets = z.RRsets.Copy()
+	return r
+}
+
 // RRsets implements a collection of RRsets to allow helper methods
 type RRsets []RRset
 

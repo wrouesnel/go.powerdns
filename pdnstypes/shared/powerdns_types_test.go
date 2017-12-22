@@ -7,11 +7,9 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/drhodes/golorem"
 	"github.com/satori/go.uuid"
 	. "gopkg.in/check.v1"
-	"github.com/constabulary/gb/testdata/src/c"
-	"github.com/drhodes/golorem"
-	"github.com/mesosphere/mesos-dns/records"
 )
 
 // Temporary list of dnstypes
@@ -287,10 +285,21 @@ func (s *SharedTypeSuite) TestRRSets(c *C) {
 }
 
 func (s *SharedTypeSuite) TestZone(c *C) {
-	// Check our map equals ourselves
-	//mappedRRs := records.rrset()
-	//for _, v := range records {
-	//	_, found := mappedRRs[v]
-	//	c.Assert(found, Equals, true, Commentf("could not find list record in map"))
-	//}
+	z := Zone{
+		Name: lorem.Host(),
+		RRsets: makeRRsets(),
+	}
+
+	c.Assert(z.HeaderEquals(z), Equals, true)
+	c.Assert(z.Equals(z), Equals, true)
+
+	// Make a copy and check it matches
+	b := z.Copy()
+	c.Assert(z.HeaderEquals(b), Equals, true)
+	c.Assert(z.Equals(b), Equals, true)
+
+	// Edit the RRsets and check it does not match
+	b.RRsets = makeRRsets()
+	c.Assert(z.HeaderEquals(b), Equals, true)
+	c.Assert(z.Equals(b), Equals, false)
 }
