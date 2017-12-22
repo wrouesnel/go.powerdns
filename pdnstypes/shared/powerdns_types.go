@@ -71,8 +71,30 @@ func (z *Zone) HeaderEquals(a Zone) bool {
 	return z.Name == a.Name
 }
 
+// Equals compares the zone headers and the contents to determine equality without regard to order (which is irrelevant)
+func (z *Zone) Equals(a Zone) bool {
+	return z.HeaderEquals(a) && z.RRsets.Equals(a.RRsets)
+}
+
 // RRsets implements a collection of RRsets to allow helper methods
 type RRsets []RRset
+
+// Equals returns whether the contents (names, TTLS, records) of the contained RRset equal those of b.
+func (rr RRsets) Equals(b RRsets) bool {
+	bMap := b.ToMap()
+
+	for _, ourv := range rr {
+		therev, found := bMap[ourv.UniqueName()]
+		if !found {
+			return false
+		}
+		if !ourv.Equals(therev) {
+			return false
+		}
+	}
+
+	return true
+}
 
 // RRsets makes a value-based copy of the containing RRsets
 func (rrs RRsets) Copy() RRsets {
@@ -202,6 +224,11 @@ type RRset struct {
 	Type    string  `json:"type"`
 	TTL     uint32  `json:"ttl"`
 	Records Records `json:"records"`
+}
+
+// Equals checks whether this RRset exactly equals B (without worrying about things like Record ordering)
+func (rr *RRset) Equals(b RRset) bool {
+	return rr.Name == b.Name && rr.Type == b.Type && rr.TTL == b.TTL && rr.Records.Equals(b.Records)
 }
 
 // Copy makes a copy of the RRset
