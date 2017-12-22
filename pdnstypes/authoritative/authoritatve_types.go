@@ -91,7 +91,7 @@ type PatchRRSets []PatchRRSet
 // CopyToRRSets makes a value-based copy of all contained RRsets and returns a regular
 // RRset object.
 func (prrs PatchRRSets) CopyToRRSets() shared.RRsets {
-	result := make(shared.RRsets, len(prrs))
+	result := make(shared.RRsets, 0, len(prrs))
 	for _, v := range prrs {
 		result = append(result, v.CopyToRRSet())
 	}

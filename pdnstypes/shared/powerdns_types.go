@@ -76,7 +76,7 @@ type RRsets []RRset
 
 // RRsets makes a value-based copy of the containing RRsets
 func (rrs RRsets) Copy() RRsets {
-	result := make(RRsets, len(rrs))
+	result := make(RRsets, 0, len(rrs))
 	for _, rr := range rrs {
 		result = append(result, rr.Copy())
 	}
@@ -181,7 +181,7 @@ func (rrs RRsets) Merge(b RRsets) RRsets {
 		}
 	}
 
-	result := make(RRsets, len(union))
+	result := make(RRsets, 0, len(union))
 
 	for _, v := range union {
 		result = append(result, v)
@@ -299,7 +299,7 @@ func (r Records) IsSubsetOf(b Records) bool {
 
 // Copy makes a value-based copy of Records element
 func (r Records) Copy() Records {
-	result := make(Records, len(r))
+	result := make(Records, 0, len(r))
 	for _, v := range r {
 		result = append(result, v.Copy())
 	}

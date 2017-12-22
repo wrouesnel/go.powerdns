@@ -331,9 +331,10 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	s.testRawRequestsCreateZoneWithContents(c, pdnsCli, "populated.test.zone.")
 
 	// Add records to zone.
-	s.testRawRequestsAddRecordsToZone(c, pdnsCli, "test.zone.")
+	addedRRs := s.testRawRequestsAddRecordsToZone(c, pdnsCli, "test.zone.")
 
-	// List Records
+	// List Records and check for RRs added previously
+	s.testRawRequestsListRecordsInZone(c, pdnsCli, "test.zone.", addedRRs)
 
 	// Remove records from zone.
 
@@ -481,10 +482,28 @@ func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Clie
 	return rrsets.CopyToRRSets()
 }
 
-//
-//func (s *AuthoritativeSuite) testRawRequestsListRecordsInZone(c *C, pdnsCli *Client) {
-//
-//}
+func (s *AuthoritativeSuite) testRawRequestsListRecordsInZone(c *C, pdnsCli *Client, zoneName string, findRRs shared.RRsets) {
+	zoneResponse := &authoritative.ZoneResponse{}
+
+	getErr := pdnsCli.DoRequest(fmt.Sprintf("zones/%s", zoneName), "GET", nil, &zoneResponse)
+	formatWrapErr(c, getErr)
+
+	c.Assert(getErr, IsNil, Commentf("Could not get zone %s", zoneName))
+
+	// Assert rrsets exist
+	differences := findRRs.Difference(zoneResponse.RRsets)
+	comment := `Requested RRs are not a subset of zone RRs:
+Zone RRs:
+%s
+Search RRs:
+%s
+Difference JSON:
+%s
+`
+	c.Assert(findRRs.IsSubsetOf(zoneResponse.RRsets), Equals, true,
+		Commentf(comment, jsonFmt(c, &zoneResponse.RRsets), jsonFmt(c, &findRRs), jsonFmt(c, &differences)))
+}
+
 //
 //func (s *AuthoritativeSuite) testRawRequestsRemoveRecordsFromZone(c *C, pdnsCli *Client) {
 //
