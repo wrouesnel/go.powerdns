@@ -340,6 +340,7 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	s.testRawRequestsRemoveRecordsFromZone(c, pdnsCli, "test.zone.", addedRRs)
 
 	// Delete zone.
+	s.testRawRequestsDeleteZone(c, pdnsCli, "test.zone.")
 
 }
 
@@ -392,7 +393,7 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 		host := strings.Join([]string{lorem.Host(), zoneName}, ".")
 
 		records := []shared.Record{}
-		for i := 0; i < rand.Intn(30); i++ {
+		for i := 0; i < 1 + rand.Intn(100); i++ {
 			record := shared.Record{
 				Disabled: rand.Intn(1) == 1,
 				Content:  fmt.Sprintf("%d.%d.%d.%d", rand.Intn(254), rand.Intn(254), rand.Intn(254), rand.Intn(254)),
@@ -450,7 +451,7 @@ func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Clie
 		host := strings.Join([]string{lorem.Host(), zoneName}, ".")
 
 		records := []shared.Record{}
-		for i := 0; i < rand.Intn(30); i++ {
+		for i := 0; i < 1 + rand.Intn(100); i++ {
 			record := shared.Record{
 				Disabled: rand.Intn(1) == 1,
 				Content:  fmt.Sprintf("%d.%d.%d.%d", rand.Intn(254), rand.Intn(254), rand.Intn(254), rand.Intn(254)),
@@ -531,6 +532,16 @@ func (s *AuthoritativeSuite) testRawRequestsRemoveRecordsFromZone(c *C, pdnsCli 
 //
 //}
 //
-//func (s *AuthoritativeSuite) testRawRequestsDeleteZone(c *C, pdnsCli *Client) {
-//
-//}
+func (s *AuthoritativeSuite) testRawRequestsDeleteZone(c *C, pdnsCli *Client, zoneName string) {
+	// Delete the zone
+	delErr := pdnsCli.DoRequest(fmt.Sprintf("zones/%s", zoneName), "DELETE", nil, nil)
+	formatWrapErr(c, delErr)
+
+	c.Assert(delErr, IsNil, Commentf("Failed to delete zone %s", zoneName))
+
+	// Check that we error when trying to delete the (now non-existent) zone
+	delErr2 := pdnsCli.DoRequest(fmt.Sprintf("zones/%s", zoneName), "DELETE", nil, nil)
+	formatWrapErr(c, delErr2)
+
+	c.Assert(delErr2, Not(IsNil), Commentf("Did NOT error while trying to delete previously deleted zone: %s", zoneName))
+}
