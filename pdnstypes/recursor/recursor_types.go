@@ -29,3 +29,17 @@ func (z *Zone) HeaderEquals(a Zone) bool {
 		reflect.DeepEqual(z.Servers, a.Servers) &&
 		z.RecursionDesired == a.RecursionDesired
 }
+
+// Equals does a HeaderCompare and checks if the contained zones are exactly early
+func (z *Zone) Equals(a Zone) bool {
+	return z.Zone.HeaderEquals(a.Zone) && z.Zone.Equals(a.Zone)
+}
+
+// Copy makes a value based copy of the zone
+func (z *Zone) Copy() Zone {
+	r := Zone{}
+	r.Zone = z.Zone.Copy()
+	r.Servers = z.Servers[:]
+	r.RecursionDesired = z.RecursionDesired
+	return r
+}

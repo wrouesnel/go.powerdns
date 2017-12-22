@@ -1,4 +1,4 @@
-package shared
+package shared_test
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/drhodes/golorem"
 	"github.com/satori/go.uuid"
-	. "gopkg.in/check.v1"
+	. "github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 	"github.com/wrouesnel/go.powerdns/testutil"
+	. "gopkg.in/check.v1"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -19,8 +19,6 @@ func Test(t *testing.T) { TestingT(t) }
 type SharedTypeSuite struct{}
 
 var _ = Suite(&SharedTypeSuite{})
-
-
 
 func (s *SharedTypeSuite) TestComment(c *C) {
 	// Initialize a new comment
