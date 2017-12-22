@@ -9,6 +9,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"fmt"
+	"net"
+	"time"
+
 	"github.com/hashicorp/errwrap"
 	"github.com/wrouesnel/go.powerdns/pdnstypes/shared"
 )
@@ -75,12 +79,37 @@ type Client struct {
 	cli        *http.Client
 }
 
-// NewClient initializes an API client with some common default.
-func NewClient(endpoint string, apiKey string, tlsInsecure bool) (*Client, error) {
-	// TLS conf
-	tr := &http.Transport{
+// deadlineRoundTripper utility function lifted from prometheus.httputil with a few modifications
+func deadlineRoundTripper(timeout time.Duration, proxyURL *url.URL, tlsInsecure bool) http.RoundTripper {
+	return &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: tlsInsecure}, // nolint: gas
+		// Set proxy (if null, then becomes a direct connection)
+		Proxy: http.ProxyURL(proxyURL),
+		// We need to disable keepalive, because we set a deadline on the
+		// underlying connection.
+		DisableKeepAlives: true,
+		Dial: func(netw, addr string) (c net.Conn, err error) {
+			start := time.Now()
+
+			c, err = net.DialTimeout(netw, addr, timeout)
+			if err != nil {
+				return nil, err
+			}
+
+			if err = c.SetDeadline(start.Add(timeout)); err != nil {
+				c.Close()
+				return nil, err
+			}
+
+			return c, nil
+		},
 	}
+}
+
+// NewClient initializes an API client with some common defaults.
+func NewClient(endpoint string, apiKey string, tlsInsecure bool, timeout time.Duration) (*Client, error) {
+	// TLS conf
+	tr := deadlineRoundTripper(timeout, nil, tlsInsecure)
 	client := &http.Client{Transport: tr}
 
 	// Decode the url
@@ -93,12 +122,13 @@ func NewClient(endpoint string, apiKey string, tlsInsecure bool) (*Client, error
 	headers := http.Header{}
 	headers["X-API-Key"] = []string{apiKey}
 
-	return New(decodedURL, client, headers)
+	return New(decodedURL, "localhost", client, headers)
 }
 
 // New returns a New PowerDNS API client. If cli is set to nil, the default httpClient
-// is used (this will probably not work as you need to set an API key header).
-func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*Client, error) {
+// is used (this will probably not work as you need to set an API key header - its also advisable to
+// configure connection time outs).
+func New(endpoint *url.URL, server string, cli *http.Client, headers http.Header) (*Client, error) {
 	if endpoint == nil {
 		return nil, ErrClientNilError
 	}
@@ -107,7 +137,7 @@ func New(endpoint *url.URL, cli *http.Client, headers http.Header) (*Client, err
 		cli = http.DefaultClient
 	}
 
-	serverPath, err := url.Parse("servers/localhost/")
+	serverPath, err := url.Parse(fmt.Sprintf("servers/%s/", server))
 	if err != nil {
 		return nil, errwrap.Wrap(ErrClientSubPathError, err)
 	}
@@ -216,200 +246,3 @@ func (p *Client) DoRequest(subPathStr string,
 
 	return nil
 }
-
-//func (p *Client) ListZones() {
-//	p.DoRequest("zones", "GET", nil, [])
-//}
-
-//func (p *Client) baseRequest() *http.Request {
-//	http.NewRequest("", p.endpoint.String(), )
-//}
-//
-//func (p *Client) GetServers() {
-//	p.endpoint.ResolveReference()
-//}
-
-// AddRecord ...
-//func (p *Client) AddRecord(name string, recordType string, ttl int, content []string) error {
-//
-//	return p.ChangeRecord(name, recordType, ttl, content, "REPLACE")
-//}
-
-// DeleteRecord ...
-//func (p *Client) DeleteRecord(name string, recordType string, ttl int, content []string) error {
-//
-//	return p.ChangeRecord(name, recordType, ttl, content, "DELETE")
-//}
-
-// ChangeRecord ...
-//func (p *Client) ChangeRecord(name string, recordType string,
-// ttl int, contents []string, action string) error {
-//
-//	// Add trailing dot for V1 and removes it for V0
-//	if p.apiVersion == 1 {
-//		name = addTrailingCharacter(name, '.')
-//	} else {
-//		name = strings.TrimRight(name, ".")
-//	}
-//
-//	rrset := RRset{
-//		Name: name,
-//		Type: recordType,
-//		TTL:  ttl,
-//	}
-//
-//	for _, content := range contents {
-//		if rrset.Type == "TXT" {
-//			content = "\"" + strings.Replace(content, "\"", "", -1) + "\""
-//		}
-//		rrset.Records = append(rrset.Records, Record{
-//			Content: content,
-//			Name:    name,
-//			TTL:     ttl,
-//			Type:    recordType,
-//		})
-//	}
-//
-//	return p.patchRRset(rrset, action)
-//}
-
-// GetRecords ...
-//func (p *Client) GetRecords() ([]Record, error) {
-//
-//	var records []Record
-//
-//	zone := new(Zone)
-//	rerr := new(Error)
-//
-//	resp, err := p.getSling().Path(p.path+"/servers/"+p.server+"/zones/"+p.domain).
-// 		Set("X-API-Key", p.apikey).Receive(zone, rerr)
-//
-//	if err != nil {
-//		return records, fmt.Errorf("Client API call has failed: %v", err)
-//	}
-//
-//	if resp.StatusCode >= 400 {
-//		rerr.Message = strings.Join([]string{resp.Status, rerr.Message}, " ")
-//		return records, rerr
-//	}
-//
-//	if len(zone.Records) > 0 {
-//		for i, record := range zone.Records {
-//			if record.Type == "TXT" {
-//				zone.Records[i].Content = strings.Replace(record.Content, "\"", "", -1)
-//			}
-//		}
-//		records = zone.Records
-//	} else {
-//		for _, rrset := range zone.RRsets {
-//			for _, rec := range rrset.Records {
-//				if rrset.Type == "TXT" {
-//					rec.Content = strings.Replace(rec.Content, "\"", "", -1)
-//				}
-//				if p.apiVersion == 1 {
-//					rrset.Name = strings.TrimRight(rrset.Name, ".")
-//				}
-//				record := Record{
-//					Name:     rrset.Name,
-//					Type:     rrset.Type,
-//					Content:  rec.Content,
-//					TTL:      rrset.TTL,
-//					Disabled: rec.Disabled,
-//				}
-//				records = append(records, record)
-//			}
-//		}
-//	}
-//
-//	return records, err
-//}
-//
-//func (p *Client) patchRRset(rrset RRset, action string) error {
-//
-//	rrset.ChangeType = "REPLACE"
-//
-//	if action == "DELETE" {
-//		rrset.ChangeType = "DELETE"
-//	}
-//
-//	sets := RRsets{}
-//	sets.Sets = append(sets.Sets, rrset)
-//
-//	rerr := new(Error)
-//	zone := new(Zone)
-//
-//	resp, err := p.getSling().Path(p.path+"/servers/"+p.server+"/zones/").
-// 		Patch(p.domain).BodyJSON(sets).Receive(zone, rerr)
-//
-//	if err == nil && resp.StatusCode >= 400 {
-//		rerr.Message = strings.Join([]string{resp.Status, rerr.Message}, " ")
-//		return rerr
-//	}
-//
-//	if resp.StatusCode == 204 {
-//		return nil
-//	}
-//
-//	return err
-//}
-
-//func (p *Client) detectAPIVersion() (int, error) {
-//
-//	versions := new([]APIVersion)
-//	info := new(ServerInfo)
-//	rerr := new(Error)
-//
-//	resp, err := p.getSling().Path("api").Receive(versions, rerr)
-//	if resp == nil && err != nil {
-//		return -1, err
-//	}
-//
-//	if resp.StatusCode == 404 {
-//		resp, err = p.getSling().Path("servers/").Path(p.server).Receive(info, rerr)
-//		if resp == nil && err != nil {
-//			return -1, err
-//		}
-//	}
-//
-//	if resp.StatusCode != 200 {
-//		rerr.Message = strings.Join([]string{resp.Status, rerr.Message}, " ")
-//		return -1, rerr
-//	}
-//
-//	if err != nil {
-//		return -1, err
-//	}
-//
-//	latestVersion := APIVersion{"", 0}
-//	for _, v := range *versions {
-//		if v.Version > latestVersion.Version {
-//			latestVersion = v
-//		}
-//	}
-//	p.path = p.path + latestVersion.URL
-//
-//	return latestVersion.Version, err
-//}
-
-//func (p *Client) getSling() *sling.Sling {
-//
-//	u := new(url.URL)
-//	u.Host = p.hostname + ":" + p.port
-//	u.Scheme = p.scheme
-//	u.Path = p.path
-//
-//	// Add trailing slash if necessary
-//	u.Path = addTrailingCharacter(u.Path, '/')
-//
-//	return sling.New().Base(u.String()).Set("X-API-Key", p.apikey)
-//}
-//
-//func addTrailingCharacter(name string, character byte) string {
-//
-//	// Add trailing dot if necessary
-//	if len(name) > 0 && name[len(name)-1] != character {
-//		name += string(character)
-//	}
-//
-//	return name
-//}
