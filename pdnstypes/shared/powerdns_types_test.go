@@ -257,7 +257,7 @@ func (s *SharedTypeSuite) TestRRSets(c *C) {
 	for idx := range rrsCopy {
 		rrsCopy[idx].Name = fmt.Sprintf("edited record %v", idx)
 	}
-	c.Assert(rrsCopy, Not(DeepEquals), rrsCopy, Commentf("After modification, recordsCopy still equals Records"))
+	c.Assert(rrsCopy, Not(DeepEquals), rrs, Commentf("After modification, rrscopy still equals rrs"))
 	// Test equals no longer agrees with the copy
 	c.Assert(rrs.Equals(rrsCopy), Equals, false)
 
@@ -286,7 +286,7 @@ func (s *SharedTypeSuite) TestRRSets(c *C) {
 
 func (s *SharedTypeSuite) TestZone(c *C) {
 	z := Zone{
-		Name: lorem.Host(),
+		Name:   lorem.Host(),
 		RRsets: makeRRsets(),
 	}
 
