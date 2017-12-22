@@ -337,6 +337,7 @@ func (s *AuthoritativeSuite) TestRawRequests(c *C) {
 	s.testRawRequestsListRecordsInZone(c, pdnsCli, "test.zone.", addedRRs)
 
 	// Remove records from zone.
+	s.testRawRequestsRemoveRecordsFromZone(c, pdnsCli, "test.zone.", addedRRs)
 
 	// Delete zone.
 
@@ -504,10 +505,27 @@ Difference JSON:
 		Commentf(comment, jsonFmt(c, &zoneResponse.RRsets), jsonFmt(c, &findRRs), jsonFmt(c, &differences)))
 }
 
-//
-//func (s *AuthoritativeSuite) testRawRequestsRemoveRecordsFromZone(c *C, pdnsCli *Client) {
-//
-//}
+func (s *AuthoritativeSuite) testRawRequestsRemoveRecordsFromZone(c *C, pdnsCli *Client, zoneName string, removeRRs shared.RRsets) {
+	// Remove records
+	rrs := authoritative.NewPatchRRSets(removeRRs, authoritative.RRSetDelete)
+
+	patchRequest := authoritative.PatchZoneRequest{RRSets: rrs}
+
+	patchErr := pdnsCli.DoRequest(fmt.Sprintf("zones/%s", zoneName), "PATCH", &patchRequest, nil)
+	formatWrapErr(c, patchErr)
+	c.Assert(patchErr, IsNil, Commentf("Could not delete records from zone %s", zoneName))
+
+	// Check records were actually removed
+	zoneResponse := &authoritative.ZoneResponse{}
+
+	getErr := pdnsCli.DoRequest(fmt.Sprintf("zones/%s", zoneName), "GET", nil, &zoneResponse)
+	formatWrapErr(c, getErr)
+	c.Assert(getErr, IsNil, Commentf("Could not get zone %s", zoneName))
+
+	c.Assert(removeRRs.IsSubsetOf(zoneResponse.RRsets), Equals, false,
+		Commentf("RRs requested for removal were still found after delete request for PATCH"))
+}
+
 //
 //func (s *AuthoritativeSuite) testRawRequestsPatchRecordsInZone(c *C, pdnsCli *Client) {
 //

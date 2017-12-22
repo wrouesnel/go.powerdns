@@ -88,6 +88,19 @@ type ZoneRequestNative struct {
 // PatchRRsets is a collection of PatchRRSet structs suitable for use with a patch request.
 type PatchRRSets []PatchRRSet
 
+// NewPatchRRSets initializes a new PatchRRSet from an RRSet, with the given changetype.
+// The new RRset is initialized with copies of the original.
+func NewPatchRRSets(rrsets shared.RRsets, changetype RRsetChangeType) PatchRRSets {
+	result := make(PatchRRSets, 0, len(rrsets))
+	for _, rrset := range rrsets {
+		result = append(result, PatchRRSet{
+			RRset:      rrset.Copy(),
+			ChangeType: changetype,
+		})
+	}
+	return result
+}
+
 // CopyToRRSets makes a value-based copy of all contained RRsets and returns a regular
 // RRset object.
 func (prrs PatchRRSets) CopyToRRSets() shared.RRsets {
