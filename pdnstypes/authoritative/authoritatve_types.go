@@ -60,6 +60,19 @@ func (z *Zone) HeaderEquals(a Zone) bool {
 		z.Account == a.Account
 }
 
+// Equals compares the Zone header metadata that would match between a ZoneRequest and a ZoneResponse as well as
+// the RRsets in the zone. It does not compare serials or notified serials.
+func (z *Zone) Equals(a Zone) bool {
+	return z.Zone.Equals(a.Zone) && z.HeaderEquals(a)
+}
+
+// Copy makes a value based copy of the zone
+func (z *Zone) Copy() Zone {
+	r := *z
+	r.Zone = z.Zone.Copy()
+	return r
+}
+
 // ZoneResponse implements the extra fields which are included in a response from a PowerDNS server. It should not
 // be used to send a Zone request.
 type ZoneResponse struct {
