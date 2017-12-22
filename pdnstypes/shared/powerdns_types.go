@@ -239,6 +239,18 @@ func (r Records) ToMap() map[Record]struct{} {
 	return result
 }
 
+// Equals returns true if this set of records contains exactly the same set as b
+func (r Records) Equals(b Records) bool {
+	them := b.ToMap()
+	for _, ourv := range r {
+		_, found := them[ourv]
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 // Difference returns the records which are in this Records collections but not in b.
 func (r Records) Difference(b Records) Records {
 	us := r.ToMap()

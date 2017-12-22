@@ -393,7 +393,7 @@ func (s *AuthoritativeSuite) testRawRequestsCreateZoneWithContents(c *C, pdnsCli
 		host := strings.Join([]string{lorem.Host(), zoneName}, ".")
 
 		records := []shared.Record{}
-		for i := 0; i < 1 + rand.Intn(100); i++ {
+		for i := 0; i < 1+rand.Intn(100); i++ {
 			record := shared.Record{
 				Disabled: rand.Intn(1) == 1,
 				Content:  fmt.Sprintf("%d.%d.%d.%d", rand.Intn(254), rand.Intn(254), rand.Intn(254), rand.Intn(254)),
@@ -451,7 +451,7 @@ func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Clie
 		host := strings.Join([]string{lorem.Host(), zoneName}, ".")
 
 		records := []shared.Record{}
-		for i := 0; i < 1 + rand.Intn(100); i++ {
+		for i := 0; i < 1+rand.Intn(100); i++ {
 			record := shared.Record{
 				Disabled: rand.Intn(1) == 1,
 				Content:  fmt.Sprintf("%d.%d.%d.%d", rand.Intn(254), rand.Intn(254), rand.Intn(254), rand.Intn(254)),
