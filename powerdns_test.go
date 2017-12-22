@@ -471,19 +471,12 @@ func (s *AuthoritativeSuite) testRawRequestsAddRecordsToZone(c *C, pdnsCli *Clie
 	patchZoneRequest := authoritative.PatchZoneRequest{
 		RRSets: rrsets,
 	}
-	patchZoneResponse := authoritative.PatchZoneResponse{}
 
-	createErr := pdnsCli.DoRequest(fmt.Sprintf("zones/%s", zoneName), "PATCH", &patchZoneRequest, &patchZoneResponse)
+	createErr := pdnsCli.DoRequest(fmt.Sprintf("zones/%s", zoneName), "PATCH", &patchZoneRequest, nil)
 	formatWrapErr(c, createErr)
 
 	c.Assert(createErr, IsNil, Commentf("Failed add new records to zone %s: Go:\n%s\nJSON:%s\n",
 		zoneName, spew.Sdump(patchZoneRequest), jsonFmt(c, &patchZoneRequest)))
-
-	//rrsetDiff := patchZoneRequest.RRSets.CopyToRRSets().Difference(patchZoneResponse.RRsets)
-	//
-	//c.Assert(rrsetDiffContainsRecords(rrsetDiff), Equals, false,
-	//	Commentf("Zone response did not include all elements of request:Request:\n%s\nResponse:\n%s\n",
-	//	jsonFmt(c,&patchZoneRequest), jsonFmt(c,&patchZoneResponse)))
 
 	return rrsets.CopyToRRSets()
 }
